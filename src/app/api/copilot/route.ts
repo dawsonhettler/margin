@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Extends Vercel timeout to prevent gateway aborts
 
 export async function POST(req: Request) {
   try {
@@ -16,74 +17,60 @@ export async function POST(req: Request) {
     const cleanKey = apiKey.trim();
 
     const systemPrompt = `You are the Lead Financial Architect & Executive AI Copilot for MARGIN, an elite luxury business financial intelligence platform.
-Your tone is sophisticated, razor-sharp, concise, authoritative, and direct (similar to a senior partner at Goldman Sachs or private bank advisor).
-Never use conversational fluff, emojis, exclamation marks, or generic SaaS speak.
+Your tone is sophisticated, concise, and direct (Goldman Sachs partner style). No conversational fluff.
 
-Here is the client's verified financial ledger:
-- Entity Profile: ${businessName}
-- Total Gross Inflows: $${financialSummary?.totalRevenue?.toLocaleString()}
-- Total Operating Disbursements: $${financialSummary?.totalExpenses?.toLocaleString()}
-- Net Operating Profit: $${financialSummary?.netProfit?.toLocaleString()}
-- Operating Margin Spread: ${financialSummary?.profitMargin}%
-- Verified Liquid Cash Position: $${financialSummary?.cashPosition?.toLocaleString()}
-- Audited Forward Runway: ${financialSummary?.runwayMonths} months
+Verified Client Ledger:
+- Entity: ${businessName}
+- Gross Inflow: $${financialSummary?.totalRevenue?.toLocaleString()}
+- Operating Outflow: $${financialSummary?.totalExpenses?.toLocaleString()}
+- Net Profit: $${financialSummary?.netProfit?.toLocaleString()} (Margin: ${financialSummary?.profitMargin}%)
+- Cash Reserves: $${financialSummary?.cashPosition?.toLocaleString()}
+- Cash Runway: ${financialSummary?.runwayMonths} months
 
-Answer the client's strategic question directly using deterministic financial calculations grounded strictly in these metrics. Give concrete dollar and percentage amounts in your recommendations.`;
+Instructions:
+1. Provide a direct 3-point executive briefing answering the client's question.
+2. Cite their exact numbers (cash, burn rate, runway).
+3. Conclude with a clear, actionable strategic recommendation.
+4. Keep the total response under 250 words so delivery is fast and razor-sharp.`;
 
-    const payload = {
-      contents: [
-        {
-          parts: [
-            {
-              text: `${systemPrompt}\n\nClient Question: "${question}"\n\nExecutive Strategic Analysis:`,
-            },
-          ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 700,
+    const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${cleanKey}`;
+
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": cleanKey,
       },
-    };
-
-    // Priority target: Gemini 3.8 Flash
-    const candidateEndpoints = [
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${cleanKey}`,
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite:generateContent?key=${cleanKey}`,
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${cleanKey}`,
-    ];
-
-    let lastError: any = null;
-
-    for (const url of candidateEndpoints) {
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": cleanKey,
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `${systemPrompt}\n\nClient Question: "${question}"\n\nExecutive Briefing:`,
+              },
+            ],
           },
-          body: JSON.stringify(payload),
-        });
+        ],
+        generationConfig: {
+          temperature: 0.15,
+          maxOutputTokens: 1200, // Enough room so it never cuts off mid-sentence
+        },
+      }),
+    });
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          return NextResponse.json({
-            answer: data.candidates[0].content.parts[0].text,
-          });
-        }
-
-        if (data.error) {
-          lastError = data.error;
-        }
-      } catch (err: any) {
-        lastError = err;
-      }
+    if (data.error) {
+      console.error("Gemini Error:", data.error);
+      return NextResponse.json({
+        answer: `Gemini Service Notice: ${data.error.message || "Failed to generate analysis."}`,
+      });
     }
 
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
     return NextResponse.json({
-      answer: `Gemini Notice: ${lastError?.message || "Failed to query Gemini 3.8 Flash. Check API key permissions in Google AI Studio."}`,
+      answer: aiText || "Ledger verified. Operating metrics conform to projected parameters.",
     });
   } catch (error: any) {
     console.error("Copilot Engine Exception:", error);

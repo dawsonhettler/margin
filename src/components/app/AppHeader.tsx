@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Building2, User, LogOut, Plus } from "lucide-react";
+import { ChevronDown, Building2, User, LogOut, Plus, Search } from "lucide-react";
 import { useFinancial } from "@/context/FinancialContext";
 import { createClient } from "@/lib/supabase/client";
+import { CommandPalette } from "@/components/app/CommandPalette";
 
 export const AppHeader = () => {
   const router = useRouter();
   const { activeBusiness, setActiveBusiness } = useFinancial();
   const [open, setOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [entityList, setEntityList] = useState<string[]>([
     "Vanguard Studio Inc.",
     "Aethelgard Commerce LLC",
@@ -17,6 +19,18 @@ export const AppHeader = () => {
   ]);
   const [isCreating, setIsCreating] = useState(false);
   const [newEntityName, setNewEntityName] = useState("");
+
+  // Listen for Global Cmd + K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsCommandOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     async function loadEntities() {
@@ -31,7 +45,6 @@ export const AppHeader = () => {
         .eq("owner_id", user.id);
 
       if (data && data.length > 0) {
-        // Explicitly type parameter 'b' to satisfy TypeScript compiler
         setEntityList(data.map((b: { business_name: string }) => b.business_name));
       }
     }
@@ -70,92 +83,114 @@ export const AppHeader = () => {
   };
 
   return (
-    <header className="h-16 border-b border-[#222222] bg-black px-6 flex items-center justify-between sticky top-0 z-40 print:hidden">
-      <div className="flex items-center space-x-6">
-        <Link href="/" className="md:hidden">
-          <span className="font-serif tracking-[0.2em] text-lg font-light text-white">MARGIN</span>
-        </Link>
-        <div className="relative">
-          <button
-            onClick={() => setOpen(!open)}
-            className="flex items-center space-x-2 text-xs tracking-widest uppercase text-neutral-200 border border-[#222222] px-3 py-1.5 hover:border-white transition-colors cursor-pointer"
-          >
-            <Building2 size={13} className="text-[#707070]" />
-            <span>{activeBusiness}</span>
-            <ChevronDown size={12} className="text-[#707070]" />
-          </button>
+    <>
+      <header className="h-16 border-b border-[#222222] bg-black px-6 flex items-center justify-between sticky top-0 z-40 print:hidden">
+        <div className="flex items-center space-x-6">
+          <Link href="/" className="md:hidden">
+            <span className="font-serif tracking-[0.2em] text-lg font-light text-white">MARGIN</span>
+          </Link>
 
-          {open && (
-            <div className="absolute left-0 mt-1 w-64 bg-[#0A0A0A] border border-[#222222] py-1 z-50 shadow-2xl">
-              <div className="px-3 py-2 text-[9px] uppercase tracking-widest text-[#707070] border-b border-[#222222]">
-                Active Enterprise Entity
-              </div>
-              {entityList.map((b) => (
-                <button
-                  key={b}
-                  onClick={() => { setActiveBusiness(b); setOpen(false); }}
-                  className={`w-full text-left px-3 py-2 text-xs transition-colors cursor-pointer ${
-                    activeBusiness === b ? "text-white bg-[#121212] font-medium" : "text-[#707070] hover:text-white"
-                  }`}
-                >
-                  {b}
-                </button>
-              ))}
+          {/* Entity Profile Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setOpen(!open)}
+              className="flex items-center space-x-2 text-xs tracking-widest uppercase text-neutral-200 border border-[#222222] px-3 py-1.5 hover:border-white transition-colors cursor-pointer"
+            >
+              <Building2 size={13} className="text-[#707070]" />
+              <span>{activeBusiness}</span>
+              <ChevronDown size={12} className="text-[#707070]" />
+            </button>
 
-              <div className="border-t border-[#222222] p-2">
-                {!isCreating ? (
+            {open && (
+              <div className="absolute left-0 mt-1 w-64 bg-[#0A0A0A] border border-[#222222] py-1 z-50 shadow-2xl">
+                <div className="px-3 py-2 text-[9px] uppercase tracking-widest text-[#707070] border-b border-[#222222]">
+                  Active Enterprise Entity
+                </div>
+                {entityList.map((b) => (
                   <button
-                    onClick={() => setIsCreating(true)}
-                    className="flex items-center space-x-1.5 text-[10px] tracking-wider uppercase text-neutral-400 hover:text-white transition-colors w-full px-2 py-1"
+                    key={b}
+                    onClick={() => { setActiveBusiness(b); setOpen(false); }}
+                    className={`w-full text-left px-3 py-2 text-xs transition-colors cursor-pointer ${
+                      activeBusiness === b ? "text-white bg-[#121212] font-medium" : "text-[#707070] hover:text-white"
+                    }`}
                   >
-                    <Plus size={11} />
-                    <span>Create Entity Profile</span>
+                    {b}
                   </button>
-                ) : (
-                  <form onSubmit={handleCreateEntity} className="space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Entity name..."
-                      value={newEntityName}
-                      onChange={(e) => setNewEntityName(e.target.value)}
-                      className="w-full bg-black border border-[#222222] px-2 py-1 text-xs text-white placeholder-[#505050] focus:outline-none"
-                      autoFocus
-                    />
-                    <div className="flex space-x-1">
-                      <button
-                        type="submit"
-                        className="bg-white text-black px-2 py-1 text-[9px] uppercase tracking-widest font-medium"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsCreating(false)}
-                        className="text-[#707070] px-2 py-1 text-[9px] uppercase tracking-widest"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+                ))}
 
-      <div className="flex items-center space-x-5">
-        <button
-          onClick={handleSignOut}
-          className="flex items-center space-x-1.5 text-[11px] uppercase tracking-widest text-[#707070] hover:text-white transition-colors cursor-pointer"
-        >
-          <LogOut size={12} />
-          <span>Sign Out</span>
-        </button>
-        <div className="w-8 h-8 border border-[#222222] flex items-center justify-center text-[#707070] hover:text-white hover:border-white transition-colors">
-          <User size={14} />
+                <div className="border-t border-[#222222] p-2">
+                  {!isCreating ? (
+                    <button
+                      onClick={() => setIsCreating(true)}
+                      className="flex items-center space-x-1.5 text-[10px] tracking-wider uppercase text-neutral-400 hover:text-white transition-colors w-full px-2 py-1"
+                    >
+                      <Plus size={11} />
+                      <span>Create Entity Profile</span>
+                    </button>
+                  ) : (
+                    <form onSubmit={handleCreateEntity} className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Entity name..."
+                        value={newEntityName}
+                        onChange={(e) => setNewEntityName(e.target.value)}
+                        className="w-full bg-black border border-[#222222] px-2 py-1 text-xs text-white placeholder-[#505050] focus:outline-none"
+                        autoFocus
+                      />
+                      <div className="flex space-x-1">
+                        <button
+                          type="submit"
+                          className="bg-white text-black px-2 py-1 text-[9px] uppercase tracking-widest font-medium"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreating(false)}
+                          className="text-[#707070] px-2 py-1 text-[9px] uppercase tracking-widest"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Command Bar Trigger */}
+          <button
+            onClick={() => setIsCommandOpen(true)}
+            className="hidden sm:flex items-center space-x-3 text-xs border border-[#222222] bg-[#0A0A0A] px-3.5 py-1.5 text-[#707070] hover:text-white hover:border-[#404040] transition-colors cursor-pointer"
+          >
+            <Search size={12} />
+            <span className="text-[11px] tracking-wider">Command Palette...</span>
+            <span className="border border-[#222222] bg-black px-1.5 py-0.5 text-[9px] uppercase tracking-widest text-[#A0A0A0]">
+              ⌘K
+            </span>
+          </button>
         </div>
-      </div>
-    </header>
+
+        {/* Right Section */}
+        <div className="flex items-center space-x-5">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center space-x-1.5 text-[11px] uppercase tracking-widest text-[#707070] hover:text-white transition-colors cursor-pointer"
+          >
+            <LogOut size={12} />
+            <span>Sign Out</span>
+          </button>
+          <div className="w-8 h-8 border border-[#222222] flex items-center justify-center text-[#707070] hover:text-white hover:border-white transition-colors">
+            <User size={14} />
+          </div>
+        </div>
+      </header>
+
+      {/* Globally Mounted Command Palette */}
+      <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} />
+    </>
   );
 };
+
+export default AppHeader;

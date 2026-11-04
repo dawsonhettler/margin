@@ -1,21 +1,24 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { UploadCloud, Plus, FileDown } from "lucide-react";
+import { UploadCloud, Plus, FileDown, Mail } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FinancialKpis } from "@/components/dashboard/FinancialKpis";
 import { VentureMetrics } from "@/components/dashboard/VentureMetrics";
+import { CapitalLeakRadar } from "@/components/dashboard/CapitalLeakRadar";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { ExpenseBreakdown } from "@/components/dashboard/ExpenseBreakdown";
 import { FinancialInsights } from "@/components/dashboard/FinancialInsights";
 import { FinancialGoals } from "@/components/dashboard/FinancialGoals";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { ImportCsvModal } from "@/components/dashboard/ImportCsvModal";
+import { InvestorMemoModal } from "@/components/dashboard/InvestorMemoModal";
 import { useFinancial } from "@/context/FinancialContext";
 
 export default function OverviewPage() {
   const { summary, setIsRecordModalOpen } = useFinancial();
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [isMemoOpen, setIsMemoOpen] = useState(false);
 
   return (
     <div className="space-y-10 pb-16">
@@ -29,7 +32,10 @@ export default function OverviewPage() {
             Financial Cockpit
           </h1>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button variant="secondary" size="sm" onClick={() => setIsMemoOpen(true)}>
+            <Mail size={13} className="mr-1.5" /> Investor Memo
+          </Button>
           <Button variant="secondary" size="sm" onClick={() => setIsCsvModalOpen(true)}>
             <UploadCloud size={13} className="mr-1.5" /> Import Statement
           </Button>
@@ -50,13 +56,16 @@ export default function OverviewPage() {
       {/* 2. Institutional Venture Health Index (Rule of 40 & Burn Multiple) */}
       <VentureMetrics />
 
-      {/* 3. Goals & Milestones */}
+      {/* 3. Autonomous Capital Leak & Anomaly Radar (Instant Value Engine) */}
+      <CapitalLeakRadar />
+
+      {/* 4. Goals & Milestones */}
       <FinancialGoals />
 
-      {/* 4. Automated Financial Insights */}
+      {/* 5. Automated Financial Insights */}
       <FinancialInsights />
 
-      {/* 5. Revenue Trajectory vs Operating Costs */}
+      {/* 6. Revenue Trajectory vs Operating Costs */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8">
           <RevenueChart />
@@ -66,11 +75,12 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* 6. General Ledger Table */}
+      {/* 7. General Ledger Table */}
       <RecentTransactions />
 
-      {/* CSV Ingestion Modal */}
+      {/* Modals */}
       <ImportCsvModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} />
+      <InvestorMemoModal isOpen={isMemoOpen} onClose={() => setIsMemoOpen(false)} />
     </div>
   );
 }

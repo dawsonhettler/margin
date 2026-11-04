@@ -1,9 +1,15 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+let browserClient: any = null;
+
 export const createClient = () => {
-  // Guard against server-side rendering execution
   if (typeof window === "undefined") {
     return null;
+  }
+
+  // Singleton instance prevents multiple GoTrueClients from colliding
+  if (browserClient) {
+    return browserClient;
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -16,5 +22,14 @@ export const createClient = () => {
     return null;
   }
 
-  return createBrowserClient(url, key);
+  browserClient = createBrowserClient(url, key, {
+    auth: {
+      // Custom no-op lock to completely bypass the browser's buggy navigator.locks deadlock
+      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
+        return await fn();
+      },
+    },
+  });
+
+  return browserClient;
 };

@@ -22,16 +22,24 @@ export default function LoginPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      // 1. Primary Supabase Login Call
+      const loginPromise = supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
-      if (error) {
-        setErrorMsg(error.message);
+      // 2. Safety Timeout: Never let the button freeze longer than 6 seconds
+      const timeoutPromise = new Promise<{ error: Error }>((_, reject) =>
+        setTimeout(() => reject(new Error("Login request timed out. Please retry.")), 6000)
+      );
+
+      const res: any = await Promise.race([loginPromise, timeoutPromise]);
+
+      if (res?.error) {
+        setErrorMsg(res.error.message);
         setLoading(false);
       } else {
-        // Full browser navigation ensures the new session cookies are committed
+        // Immediate hard redirect to commit session cookies cleanly
         window.location.href = "/overview";
       }
     } catch (err: any) {

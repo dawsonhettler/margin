@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Compass,
   BarChart3,
   TrendingUp,
   Receipt,
@@ -19,6 +20,7 @@ export const AppSidebar = () => {
 
   const links = [
     { name: "Overview", href: "/overview", icon: LayoutDashboard },
+    { name: "Decision Room", href: "/decision-room", icon: Compass },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Revenue", href: "/revenue", icon: TrendingUp },
     { name: "Expenses", href: "/expenses", icon: Receipt },
@@ -49,7 +51,7 @@ export const AppSidebar = () => {
                 href={link.href}
                 className={`flex items-center space-x-3 px-4 py-2.5 text-xs tracking-wider transition-colors uppercase ${
                   isActive
-                    ? "bg-[#121212] text-white border-l-2 border-white font-medium"
+                    ? "bg-[#121212] text-white border-l-2 border-white font-medium shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
                     : "text-[#707070] hover:text-[#A0A0A0] hover:bg-[#0A0A0A]"
                 }`}
               >

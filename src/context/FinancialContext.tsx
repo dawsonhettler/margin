@@ -3,18 +3,38 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { INITIAL_TRANSACTIONS, INITIAL_SUMMARY, Transaction, FinancialSummary } from "@/lib/sample-data";
 import { createClient } from "@/lib/supabase/client";
 
+export interface SavedScenario {
+  id: string;
+  name: string;
+  decisionType: string;
+  assumptions: Record<string, any>;
+  outcomes: {
+    monthlyRevDelta: number;
+    monthlyExpDelta: number;
+    netDelta: number;
+    runwayDelta: number;
+    breakEvenUnits?: number;
+    paybackMonths?: number;
+  };
+  createdAt: string;
+}
+
 interface FinancialContextType {
   transactions: Transaction[];
   summary: FinancialSummary;
   addTransaction: (tx: Omit<Transaction, "id">) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   activeBusiness: string;
+  activeBusinessId: string | null;
   setActiveBusiness: (name: string) => void;
   isRecordModalOpen: boolean;
   setIsRecordModalOpen: (open: boolean) => void;
   modalDefaultType: "income" | "expense";
   openRecordModal: (type?: "income" | "expense") => void;
   isLoading: boolean;
+  scenarios: SavedScenario[];
+  saveScenario: (name: string, decisionType: string, assumptions: any, outcomes: any) => Promise<void>;
+  deleteScenario: (id: string) => Promise<void>;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -27,6 +47,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [modalDefaultType, setModalDefaultType] = useState<"income" | "expense">("income");
   const [isLoading, setIsLoading] = useState(true);
+  const [scenarios, setScenarios] = useState<SavedScenario[]>([]);
 
   // Recalculate financial KPIs dynamically whenever transactions change
   useEffect(() => {
@@ -89,7 +110,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .order("transaction_date", { ascending: false });
 
         if (txData && txData.length > 0) {
-          // Explicitly type parameter 't' as any to satisfy strict compiler
           const mapped: Transaction[] = txData.map((t: any) => ({
             id: t.id,
             description: t.description,
@@ -100,9 +120,29 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }));
           setTransactions(mapped);
         }
+
+        // Fetch saved decision scenarios
+        const { data: scenarioData } = await supabase
+          .from("business_scenarios")
+          .select("*")
+          .eq("business_id", currentBiz.id)
+          .order("created_at", { ascending: false });
+
+        if (scenarioData && scenarioData.length > 0) {
+          setScenarios(
+            scenarioData.map((s: any) => ({
+              id: s.id,
+              name: s.scenario_name,
+              decisionType: s.scenario_data?.decisionType || "General Decision",
+              assumptions: s.scenario_data?.assumptions || {},
+              outcomes: s.scenario_data?.outcomes || {},
+              createdAt: s.created_at,
+            }))
+          );
+        }
       }
     } catch (err) {
-      console.warn("Supabase fetch fallback to sample data:", err);
+      console.warn("Supabase fetch fallback:", err);
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +152,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     fetchSupabaseData();
   }, [fetchSupabaseData]);
 
-  // Insert Transaction into Supabase and local state
   const addTransaction = async (tx: Omit<Transaction, "id">) => {
     const tempId = `TX-${Math.floor(1000 + Math.random() * 9000)}`;
     const newTx: Transaction = { ...tx, id: tempId };
@@ -146,7 +185,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // Delete Transaction from Supabase and local state
   const deleteTransaction = async (id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
 
@@ -156,6 +194,56 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         await supabase.from("transactions").delete().eq("id", id);
       } catch (err) {
         console.error("Failed to delete transaction in Supabase:", err);
+      }
+    }
+  };
+
+  const saveScenario = async (name: string, decisionType: string, assumptions: any, outcomes: any) => {
+    const tempId = `SCN-${Date.now()}`;
+    const newScn: SavedScenario = {
+      id: tempId,
+      name,
+      decisionType,
+      assumptions,
+      outcomes,
+      createdAt: new Date().toISOString(),
+    };
+
+    setScenarios((prev) => [newScn, ...prev]);
+
+    const supabase = createClient();
+    if (supabase && activeBusinessId) {
+      try {
+        const { data } = await supabase
+          .from("business_scenarios")
+          .insert({
+            business_id: activeBusinessId,
+            scenario_name: name,
+            scenario_data: { decisionType, assumptions, outcomes },
+          })
+          .select()
+          .single();
+
+        if (data) {
+          setScenarios((prev) =>
+            prev.map((s) => (s.id === tempId ? { ...s, id: data.id } : s))
+          );
+        }
+      } catch (err) {
+        console.error("Failed to persist scenario in Supabase:", err);
+      }
+    }
+  };
+
+  const deleteScenario = async (id: string) => {
+    setScenarios((prev) => prev.filter((s) => s.id !== id));
+
+    const supabase = createClient();
+    if (supabase) {
+      try {
+        await supabase.from("business_scenarios").delete().eq("id", id);
+      } catch (err) {
+        console.error("Failed to remove scenario:", err);
       }
     }
   };
@@ -173,12 +261,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addTransaction,
         deleteTransaction,
         activeBusiness,
+        activeBusinessId,
         setActiveBusiness,
         isRecordModalOpen,
         setIsRecordModalOpen,
         modalDefaultType,
         openRecordModal,
         isLoading,
+        scenarios,
+        saveScenario,
+        deleteScenario,
       }}
     >
       {children}

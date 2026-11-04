@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+let cachedModelName: string | null = null;
+
 export async function POST(req: Request) {
   try {
     const { question, financialSummary, businessName } = await req.json();
@@ -9,7 +11,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes("your-gemini-api-key")) {
       return NextResponse.json({
-        answer: `[API Key Missing] GEMINI_API_KEY is not detected in environment variables.`,
+        answer: `[API Key Missing] GEMINI_API_KEY is not detected. Please verify GEMINI_API_KEY in Vercel Settings -> Environment Variables.`,
       });
     }
 
@@ -30,7 +32,7 @@ Here is the client's verified financial ledger:
 
 Answer the client's strategic question directly using deterministic financial calculations grounded strictly in these metrics. Give concrete dollar and percentage amounts in your recommendations.`;
 
-    const payload = JSON.stringify({
+    const payload = {
       contents: [
         {
           parts: [
@@ -44,31 +46,62 @@ Answer the client's strategic question directly using deterministic financial ca
         temperature: 0.2,
         maxOutputTokens: 600,
       },
-    });
+    };
 
-    // Google hosts gemini-1.5-flash on /v1/. We also include fallbacks.
-    const endpoints = [
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${cleanKey}`,
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cleanKey}`,
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleanKey}`,
-    ];
+    // 1. Dynamically query Google for the active models on this key
+    let modelName = cachedModelName;
+
+    if (!modelName) {
+      try {
+        const listRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
+        );
+        const listData = await listRes.json();
+
+        if (listData.models && listData.models.length > 0) {
+          const supported = listData.models.find(
+            (m: any) =>
+              m.supportedGenerationMethods?.includes("generateContent") &&
+              (m.name.includes("flash") || m.name.includes("pro"))
+          );
+          if (supported) {
+            modelName = supported.name; // e.g. "models/gemini-2.0-flash" or "models/gemini-2.5-flash"
+            cachedModelName = modelName;
+          }
+        }
+      } catch (err) {
+        console.warn("Dynamic model lookup notice:", err);
+      }
+    }
+
+    // Candidate list fallback in case discovery is throttled
+    const candidateModels = modelName
+      ? [modelName]
+      : [
+          "models/gemini-2.0-flash",
+          "models/gemini-2.5-flash",
+          "models/gemini-2.5-flash-lite",
+          "models/gemini-1.5-flash-001",
+        ];
 
     let lastError: any = null;
 
-    for (const url of endpoints) {
+    for (const mod of candidateModels) {
       try {
-        const response = await fetch(url, {
+        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/${mod}:generateContent?key=${cleanKey}`;
+        const response = await fetch(targetUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-goog-api-key": cleanKey,
           },
-          body: payload,
+          body: JSON.stringify(payload),
         });
 
         const data = await response.json();
 
         if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          cachedModelName = mod;
           return NextResponse.json({
             answer: data.candidates[0].content.parts[0].text,
           });

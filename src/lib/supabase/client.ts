@@ -21,11 +21,17 @@ export const createClient = () => {
     return null;
   }
 
-  // Cast options to any so TypeScript doesn't reject custom lock handler
+  // Universal lock handler supports both 2-argument and 3-argument calls from GoTrue
   browserClient = (createBrowserClient as any)(url, key, {
     auth: {
-      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
-        return await fn();
+      lock: async (_name: string, acquireTimeoutOrCallback: any, maybeCallback?: any) => {
+        const fn =
+          typeof acquireTimeoutOrCallback === "function"
+            ? acquireTimeoutOrCallback
+            : maybeCallback;
+        if (typeof fn === "function") {
+          return await fn();
+        }
       },
     },
   });

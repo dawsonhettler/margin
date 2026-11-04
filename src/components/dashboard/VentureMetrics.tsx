@@ -1,23 +1,30 @@
 "use client";
-import React from "react";
-import { ShieldCheck, Flame, Calendar, Award } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Award } from "lucide-react";
 import { useFinancial } from "@/context/FinancialContext";
 
 export const VentureMetrics: React.FC = () => {
   const { summary } = useFinancial();
+  const [mounted, setMounted] = useState(false);
 
-  // Rule of 40 calculation (Assume 25% ARR growth + Net Profit Margin)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const growthRate = 25.4;
-  const ruleOf40 = Math.round(growthRate + summary.profitMargin);
+  const profitMargin = summary?.profitMargin || 0;
+  const ruleOf40 = Math.round(growthRate + profitMargin);
 
-  // Cash Zero Date Calculation
-  const monthlyBurn = summary.totalExpenses > summary.totalRevenue ? (summary.totalExpenses - summary.totalRevenue) / 2 : 0;
+  const runway = summary?.runwayMonths || 20;
   const zeroDate = new Date();
-  zeroDate.setMonth(zeroDate.getMonth() + Math.round(summary.runwayMonths));
-  const zeroDateStr = zeroDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  zeroDate.setMonth(zeroDate.getMonth() + Math.round(runway));
+  const zeroDateStr = mounted
+    ? zeroDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })
+    : "Analyzing...";
 
-  // Burn Multiple (Net Burn / Net Inflow)
-  const burnMultiple = summary.totalRevenue > 0 ? (summary.totalExpenses / summary.totalRevenue).toFixed(2) : "1.00";
+  const totalExpenses = summary?.totalExpenses || 0;
+  const totalRevenue = summary?.totalRevenue || 0;
+  const burnMultiple = totalRevenue > 0 ? (totalExpenses / totalRevenue).toFixed(2) : "1.00";
 
   return (
     <div className="border border-[#222222] bg-[#0A0A0A] p-6 sm:p-8">
@@ -49,7 +56,7 @@ export const VentureMetrics: React.FC = () => {
           <span className="text-[10px] tracking-[0.25em] uppercase text-[#707070] block mb-1">Cash Zero Date</span>
           <div className="font-serif text-3xl font-light text-white">{zeroDateStr}</div>
           <span className="text-[10px] text-[#707070] mt-1 block uppercase tracking-wider">
-            {summary.runwayMonths} Mo forward runway
+            {runway} Mo forward runway
           </span>
         </div>
 

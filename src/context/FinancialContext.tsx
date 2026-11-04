@@ -89,7 +89,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .order("transaction_date", { ascending: false });
 
         if (txData && txData.length > 0) {
-          const mapped: Transaction[] = txData.map((t) => ({
+          // Explicitly type parameter 't' as any to satisfy strict compiler
+          const mapped: Transaction[] = txData.map((t: any) => ({
             id: t.id,
             description: t.description,
             amount: parseFloat(t.amount),
@@ -116,7 +117,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const tempId = `TX-${Math.floor(1000 + Math.random() * 9000)}`;
     const newTx: Transaction = { ...tx, id: tempId };
 
-    // Optimistic UI update
     setTransactions((prev) => [newTx, ...prev]);
 
     const supabase = createClient();
@@ -136,7 +136,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .single();
 
         if (data) {
-          // Replace temp ID with Supabase UUID
           setTransactions((prev) =>
             prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t))
           );

@@ -1,6 +1,6 @@
 "use client";
-import React, { useState } from "react";
-import { Sparkles, Send, User, ArrowUpRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Sparkles, Send, User, ArrowUpRight, Volume2, VolumeX } from "lucide-react";
 import { useFinancial } from "@/context/FinancialContext";
 
 export default function CopilotPage() {
@@ -13,6 +13,40 @@ export default function CopilotPage() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Stop speech if unmounted
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const speakText = (text: string) => {
+    if (!voiceEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+
+    // Clean markdown asterisks and hashtags for clean speech
+    const cleanSpeech = text.replace(/[*#_•-]/g, "").trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanSpeech);
+    utterance.rate = 1.0;
+    utterance.pitch = 0.95; // Slightly lower, authoritative tone
+
+    // Attempt to pick a distinguished voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const distinguished = voices.find((v) => v.name.includes("Daniel") || v.name.includes("Oliver") || v.lang.includes("en-GB"));
+    if (distinguished) utterance.voice = distinguished;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  };
 
   const predefinedPrompts = [
     "Why did our net margin expand this quarter?",
@@ -42,13 +76,12 @@ export default function CopilotPage() {
       });
 
       const data = await res.json();
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.answer || "Ledger verified. Capital stability intact.",
-        },
-      ]);
+      const reply = data.answer || "Ledger verified. Capital stability intact.";
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+
+      if (voiceEnabled) {
+        speakText(reply);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -64,15 +97,36 @@ export default function CopilotPage() {
 
   return (
     <div className="space-y-8 max-w-4xl pb-16">
-      <div className="pb-6 border-b border-[#222222]">
-        <span className="text-[10px] tracking-[0.25em] uppercase text-[#707070] block font-sans">
-          Deterministic Intelligence • Powered by Gemini 3.8 Flash
-        </span>
-        <h1 className="font-serif text-3xl sm:text-5xl font-light text-white mt-1">
-          Executive Copilot
-        </h1>
+      {/* Title Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-6 border-b border-[#222222] gap-4">
+        <div>
+          <span className="text-[10px] tracking-[0.25em] uppercase text-[#707070] block font-sans">
+            Deterministic Intelligence • Powered by Gemini 3.8 Flash
+          </span>
+          <h1 className="font-serif text-3xl sm:text-5xl font-light text-white mt-1">
+            Executive Copilot
+          </h1>
+        </div>
+
+        {/* Audible Briefing Toggle */}
+        <button
+          onClick={() => {
+            const next = !voiceEnabled;
+            setVoiceEnabled(next);
+            if (!next && typeof window !== "undefined") window.speechSynthesis.cancel();
+          }}
+          className={`flex items-center space-x-2 text-xs uppercase tracking-wider px-3.5 py-2 border transition-colors cursor-pointer self-start sm:self-auto ${
+            voiceEnabled
+              ? "bg-white text-black border-white font-medium"
+              : "border-[#333] bg-[#0A0A0A] text-[#707070] hover:text-white"
+          }`}
+        >
+          {voiceEnabled ? <Volume2 size={13} className="animate-pulse" /> : <VolumeX size={13} />}
+          <span>{voiceEnabled ? (isSpeaking ? "Speaking Briefing..." : "Audible Briefing: On") : "Audio Brief: Off"}</span>
+        </button>
       </div>
 
+      {/* Suggested Prompts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {predefinedPrompts.map((p) => (
           <button
@@ -86,6 +140,7 @@ export default function CopilotPage() {
         ))}
       </div>
 
+      {/* Conversation Thread */}
       <div className="border border-[#222222] bg-[#0A0A0A] p-6 min-h-[380px] max-h-[550px] overflow-y-auto space-y-6">
         {messages.map((m, idx) => (
           <div key={idx} className={`flex space-x-4 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -119,6 +174,7 @@ export default function CopilotPage() {
         )}
       </div>
 
+      {/* Input */}
       <div className="flex items-center border border-[#222222] bg-black">
         <input
           type="text"

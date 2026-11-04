@@ -9,9 +9,11 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes("your-gemini-api-key")) {
       return NextResponse.json({
-        answer: `[API Key Missing] GEMINI_API_KEY is not detected by Vercel. Please verify GEMINI_API_KEY in Vercel Dashboard -> Settings -> Environment Variables.`,
+        answer: `[API Key Missing] GEMINI_API_KEY is not detected in environment variables.`,
       });
     }
+
+    const cleanKey = apiKey.trim();
 
     const systemPrompt = `You are the Lead Financial Architect & Executive AI Copilot for MARGIN, an elite luxury business financial intelligence platform.
 Your tone is sophisticated, razor-sharp, concise, authoritative, and direct (similar to a senior partner at Goldman Sachs or private bank advisor).
@@ -28,45 +30,60 @@ Here is the client's verified financial ledger:
 
 Answer the client's strategic question directly using deterministic financial calculations grounded strictly in these metrics. Give concrete dollar and percentage amounts in your recommendations.`;
 
-    const cleanKey = apiKey.trim();
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`;
-
-    const response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": cleanKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${systemPrompt}\n\nClient Question: "${question}"\n\nExecutive Strategic Analysis:`,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 600,
+    const payload = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: `${systemPrompt}\n\nClient Question: "${question}"\n\nExecutive Strategic Analysis:`,
+            },
+          ],
         },
-      }),
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 600,
+      },
     });
 
-    const data = await response.json();
+    // Google hosts gemini-1.5-flash on /v1/. We also include fallbacks.
+    const endpoints = [
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${cleanKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cleanKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleanKey}`,
+    ];
 
-    if (data.error) {
-      console.error("Gemini API Error:", data.error);
-      return NextResponse.json({
-        answer: `Gemini Error (${data.error.code || "API"}): ${data.error.message || "Failed to process request."}`,
-      });
+    let lastError: any = null;
+
+    for (const url of endpoints) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": cleanKey,
+          },
+          body: payload,
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          return NextResponse.json({
+            answer: data.candidates[0].content.parts[0].text,
+          });
+        }
+
+        if (data.error) {
+          lastError = data.error;
+        }
+      } catch (err: any) {
+        lastError = err;
+      }
     }
 
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
     return NextResponse.json({
-      answer: aiText || "Ledger analyzed. Parameters verify within projected operating variance.",
+      answer: `Gemini Notice: ${lastError?.message || "Failed to reach model. Please verify API key permissions in Google AI Studio."}`,
     });
   } catch (error: any) {
     console.error("Copilot Engine Exception:", error);

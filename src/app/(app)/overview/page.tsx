@@ -1,17 +1,21 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import { UploadCloud, Plus, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FinancialKpis } from "@/components/dashboard/FinancialKpis";
+import { VentureMetrics } from "@/components/dashboard/VentureMetrics";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { ExpenseBreakdown } from "@/components/dashboard/ExpenseBreakdown";
 import { FinancialInsights } from "@/components/dashboard/FinancialInsights";
 import { FinancialGoals } from "@/components/dashboard/FinancialGoals";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { ImportCsvModal } from "@/components/dashboard/ImportCsvModal";
 import { useFinancial } from "@/context/FinancialContext";
 
 export default function OverviewPage() {
   const { summary, setIsRecordModalOpen } = useFinancial();
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
 
   return (
     <div className="space-y-10 pb-16">
@@ -26,20 +30,33 @@ export default function OverviewPage() {
           </h1>
         </div>
         <div className="flex items-center space-x-3">
+          <Button variant="secondary" size="sm" onClick={() => setIsCsvModalOpen(true)}>
+            <UploadCloud size={13} className="mr-1.5" /> Import Statement
+          </Button>
           <Link href="/reports">
             <Button variant="secondary" size="sm">
-              Export Dossier
+              <FileDown size={13} className="mr-1.5" /> Export Dossier
             </Button>
           </Link>
           <Button variant="primary" size="sm" onClick={() => setIsRecordModalOpen(true)}>
-            + Record Transaction
+            <Plus size={13} className="mr-1" /> Record Entry
           </Button>
         </div>
       </div>
 
+      {/* 1. Large Financial KPIs */}
       <FinancialKpis summary={summary} />
+
+      {/* 2. Institutional Venture Health Index (Rule of 40 & Burn Multiple) */}
+      <VentureMetrics />
+
+      {/* 3. Goals & Milestones */}
       <FinancialGoals />
+
+      {/* 4. Automated Financial Insights */}
       <FinancialInsights />
+
+      {/* 5. Revenue Trajectory vs Operating Costs */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8">
           <RevenueChart />
@@ -48,7 +65,12 @@ export default function OverviewPage() {
           <ExpenseBreakdown />
         </div>
       </div>
+
+      {/* 6. General Ledger Table */}
       <RecentTransactions />
+
+      {/* CSV Ingestion Modal */}
+      <ImportCsvModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} />
     </div>
   );
 }

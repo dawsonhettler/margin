@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60; // Extends Vercel timeout to prevent gateway aborts
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -33,44 +33,69 @@ Instructions:
 3. Conclude with a clear, actionable strategic recommendation.
 4. Keep the total response under 250 words so delivery is fast and razor-sharp.`;
 
-    const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${cleanKey}`;
-
-    const response = await fetch(targetUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": cleanKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${systemPrompt}\n\nClient Question: "${question}"\n\nExecutive Briefing:`,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.15,
-          maxOutputTokens: 1200, // Enough room so it never cuts off mid-sentence
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `${systemPrompt}\n\nClient Question: "${question}"\n\nExecutive Strategic Briefing:`,
+            },
+          ],
         },
-      }),
-    });
+      ],
+      generationConfig: {
+        temperature: 0.15,
+        maxOutputTokens: 1000,
+      },
+    };
 
-    const data = await response.json();
+    // Resilient Model Pool: If 3.8-flash has a traffic spike, auto-cascade to flash-lite
+    const modelPool = [
+      "gemini-3.8-flash",
+      "gemini-3.8-flash-lite",
+      "gemini-3.5-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+    ];
 
-    if (data.error) {
-      console.error("Gemini Error:", data.error);
-      return NextResponse.json({
-        answer: `Gemini Service Notice: ${data.error.message || "Failed to generate analysis."}`,
-      });
+    let lastErrorMsg = "";
+
+    for (const model of modelPool) {
+      try {
+        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+        
+        const response = await fetch(targetUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": cleanKey,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        // If successful, return immediately
+        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          return NextResponse.json({
+            answer: data.candidates[0].content.parts[0].text,
+          });
+        }
+
+        // If Google reports high demand / 503, log and try the next model in the pool
+        if (data.error) {
+          lastErrorMsg = data.error.message || "";
+          console.warn(`Model ${model} returned error (${data.error.code}): ${data.error.message}. Cascading to next model...`);
+          continue;
+        }
+      } catch (err: any) {
+        lastErrorMsg = err?.message || "";
+        continue;
+      }
     }
 
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
     return NextResponse.json({
-      answer: aiText || "Ledger verified. Operating metrics conform to projected parameters.",
+      answer: `Gemini Capacity Alert: ${lastErrorMsg || "All model endpoints are currently experiencing temporary Google cloud demand. Please retry in a few moments."}`,
     });
   } catch (error: any) {
     console.error("Copilot Engine Exception:", error);

@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-let cachedModelName: string | null = null;
-
 export async function POST(req: Request) {
   try {
     const { question, financialSummary, businessName } = await req.json();
@@ -11,7 +9,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes("your-gemini-api-key")) {
       return NextResponse.json({
-        answer: `[API Key Missing] GEMINI_API_KEY is not detected. Please verify GEMINI_API_KEY in Vercel Settings -> Environment Variables.`,
+        answer: `[API Key Missing] GEMINI_API_KEY is not detected in environment variables.`,
       });
     }
 
@@ -44,52 +42,22 @@ Answer the client's strategic question directly using deterministic financial ca
       ],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 600,
+        maxOutputTokens: 700,
       },
     };
 
-    // 1. Dynamically query Google for the active models on this key
-    let modelName = cachedModelName;
-
-    if (!modelName) {
-      try {
-        const listRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
-        );
-        const listData = await listRes.json();
-
-        if (listData.models && listData.models.length > 0) {
-          const supported = listData.models.find(
-            (m: any) =>
-              m.supportedGenerationMethods?.includes("generateContent") &&
-              (m.name.includes("flash") || m.name.includes("pro"))
-          );
-          if (supported) {
-            modelName = supported.name; // e.g. "models/gemini-2.0-flash" or "models/gemini-2.5-flash"
-            cachedModelName = modelName;
-          }
-        }
-      } catch (err) {
-        console.warn("Dynamic model lookup notice:", err);
-      }
-    }
-
-    // Candidate list fallback in case discovery is throttled
-    const candidateModels = modelName
-      ? [modelName]
-      : [
-          "models/gemini-2.0-flash",
-          "models/gemini-2.5-flash",
-          "models/gemini-2.5-flash-lite",
-          "models/gemini-1.5-flash-001",
-        ];
+    // Priority target: Gemini 3.8 Flash
+    const candidateEndpoints = [
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${cleanKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite:generateContent?key=${cleanKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${cleanKey}`,
+    ];
 
     let lastError: any = null;
 
-    for (const mod of candidateModels) {
+    for (const url of candidateEndpoints) {
       try {
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/${mod}:generateContent?key=${cleanKey}`;
-        const response = await fetch(targetUrl, {
+        const response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -101,7 +69,6 @@ Answer the client's strategic question directly using deterministic financial ca
         const data = await response.json();
 
         if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          cachedModelName = mod;
           return NextResponse.json({
             answer: data.candidates[0].content.parts[0].text,
           });
@@ -116,7 +83,7 @@ Answer the client's strategic question directly using deterministic financial ca
     }
 
     return NextResponse.json({
-      answer: `Gemini Notice: ${lastError?.message || "Failed to reach model. Please verify API key permissions in Google AI Studio."}`,
+      answer: `Gemini Notice: ${lastError?.message || "Failed to query Gemini 3.8 Flash. Check API key permissions in Google AI Studio."}`,
     });
   } catch (error: any) {
     console.error("Copilot Engine Exception:", error);

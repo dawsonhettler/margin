@@ -10,7 +10,11 @@ export const AppHeader = () => {
   const router = useRouter();
   const { activeBusiness, setActiveBusiness } = useFinancial();
   const [open, setOpen] = useState(false);
-  const [entityList, setEntityList] = useState<string[]>(["Vanguard Studio Inc.", "Aethelgard Commerce LLC", "Atelier Capital"]);
+  const [entityList, setEntityList] = useState<string[]>([
+    "Vanguard Studio Inc.",
+    "Aethelgard Commerce LLC",
+    "Atelier Capital",
+  ]);
   const [isCreating, setIsCreating] = useState(false);
   const [newEntityName, setNewEntityName] = useState("");
 
@@ -27,7 +31,8 @@ export const AppHeader = () => {
         .eq("owner_id", user.id);
 
       if (data && data.length > 0) {
-        setEntityList(data.map((b) => b.business_name));
+        // Explicitly type parameter 'b' to satisfy TypeScript compiler
+        setEntityList(data.map((b: { business_name: string }) => b.business_name));
       }
     }
     loadEntities();

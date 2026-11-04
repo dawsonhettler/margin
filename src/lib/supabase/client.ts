@@ -7,7 +7,6 @@ export const createClient = () => {
     return null;
   }
 
-  // Singleton instance prevents multiple GoTrueClients from colliding
   if (browserClient) {
     return browserClient;
   }
@@ -22,9 +21,9 @@ export const createClient = () => {
     return null;
   }
 
-  browserClient = createBrowserClient(url, key, {
+  // Cast options to any so TypeScript doesn't reject custom lock handler
+  browserClient = (createBrowserClient as any)(url, key, {
     auth: {
-      // Custom no-op lock to completely bypass the browser's buggy navigator.locks deadlock
       lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
         return await fn();
       },

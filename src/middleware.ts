@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Public paths that do not require authentication
+  // Allow public paths
   const isPublic =
     pathname === "/" ||
     pathname.startsWith("/auth") ||
@@ -15,15 +15,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for Supabase session cookies
+  // Correctly match chunked cookies (sb-*-auth-token.0, sb-*-auth-token.1)
   const hasAuthCookie = request.cookies
     .getAll()
-    .some((c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"));
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
 
-  // If unauthenticated and accessing app routes, redirect to login
   if (!hasAuthCookie) {
     const loginUrl = new URL("/auth/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 

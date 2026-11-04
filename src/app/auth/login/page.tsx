@@ -1,12 +1,10 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -19,30 +17,32 @@ export default function LoginPage() {
 
     const supabase = createClient();
     if (!supabase) {
-      // Local dev mode fallback
-      setTimeout(() => {
-        router.push("/overview");
-      }, 400);
+      window.location.href = "/overview";
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setErrorMsg(error.message);
+      if (error) {
+        setErrorMsg(error.message);
+        setLoading(false);
+      } else {
+        // Full browser navigation ensures the new session cookies are committed
+        window.location.href = "/overview";
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Authentication error occurred.");
       setLoading(false);
-    } else {
-      router.push("/overview");
     }
   };
 
   return (
     <div className="min-h-screen bg-black flex flex-col justify-center items-center px-6 selection:bg-white selection:text-black">
       <div className="w-full max-w-md border border-[#222222] bg-[#0A0A0A] p-8 sm:p-12">
-        {/* Header */}
         <div className="text-center pb-8 border-b border-[#222222] mb-8">
           <Link href="/" className="font-serif tracking-[0.35em] text-2xl font-light text-white uppercase block mb-2">
             MARGIN
@@ -78,9 +78,9 @@ export default function LoginPage() {
               <label className="uppercase text-[10px] tracking-widest text-[#707070]">
                 Security Key
               </label>
-              <a href="#" className="text-[10px] text-[#707070] hover:text-white uppercase tracking-wider">
+              <Link href="/auth/forgot-password" className="text-[10px] text-[#707070] hover:text-white uppercase tracking-wider">
                 Reset
-              </a>
+              </Link>
             </div>
             <input
               type="password"

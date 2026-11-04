@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 
 export const dynamic = "force-dynamic";
 
@@ -10,41 +9,66 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes("your-gemini-api-key")) {
       return NextResponse.json({
-        answer: `[Deterministic Intelligence Mode] Ledger verified for ${businessName}: Total Inflow $${financialSummary.totalRevenue?.toLocaleString()}, Reserves $${financialSummary.cashPosition?.toLocaleString()}, Runway ${financialSummary.runwayMonths} months.`,
+        answer: `[Configuration Notice] GEMINI_API_KEY is not configured in Vercel Environment Variables. Add GEMINI_API_KEY in Vercel Settings -> Environment Variables and redeploy to enable live intelligence.`,
       });
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-
-    const systemPrompt = `You are the Lead Financial Architect & Executive AI Copilot for MARGIN, a private luxury business financial intelligence platform.
-Your tone is sophisticated, razor-sharp, concise, authoritative, and direct (akin to a senior partner at Goldman Sachs or private bank advisor).
+    const systemPrompt = `You are the Lead Financial Architect & Executive AI Copilot for MARGIN, an elite luxury business financial intelligence platform.
+Your tone is sophisticated, razor-sharp, concise, authoritative, and direct (similar to a senior partner at Goldman Sachs or private bank advisor).
 Never use conversational fluff, emojis, exclamation marks, or generic SaaS speak.
 
-Here is the verified financial ledger for the client:
-- Entity: ${businessName}
-- Total Revenue: $${financialSummary.totalRevenue}
-- Total Operating Expenses: $${financialSummary.totalExpenses}
-- Net Profit: $${financialSummary.netProfit}
-- Net Operating Margin: ${financialSummary.profitMargin}%
-- Verified Liquid Cash: $${financialSummary.cashPosition}
-- Cash Runway: ${financialSummary.runwayMonths} months
+Here is the client's verified financial ledger:
+- Entity Profile: ${businessName}
+- Total Gross Inflows: $${financialSummary.totalRevenue?.toLocaleString()}
+- Total Operating Disbursements: $${financialSummary.totalExpenses?.toLocaleString()}
+- Net Operating Profit: $${financialSummary.netProfit?.toLocaleString()}
+- Operating Margin Spread: ${financialSummary.profitMargin}%
+- Verified Liquid Cash Position: $${financialSummary.cashPosition?.toLocaleString()}
+- Audited Forward Runway: ${financialSummary.runwayMonths} months
 
-Answer the executive's question using deterministic logic grounded strictly in their numbers.`;
+Answer the client's strategic question directly using deterministic financial calculations grounded strictly in these metrics. Give concrete dollar and percentage amounts in your recommendations.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
-        { role: "user", parts: [{ text: `${systemPrompt}\n\nClient Question: "${question}"` }] }
-      ],
+    // Direct native call to Google Gemini 1.5 Flash (compatible with all AQ. and AIza keys)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `${systemPrompt}\n\nClient Question: "${question}"\n\nExecutive Strategic Analysis:`,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 600,
+        },
+      }),
     });
+
+    const data = await response.json();
+
+    if (data.error) {
+      console.error("Google Gemini API Error:", data.error);
+      return NextResponse.json({
+        answer: `Gemini Service Notice: ${data.error.message || "Failed to authenticate with Google AI Studio."}`,
+      });
+    }
+
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     return NextResponse.json({
-      answer: response.text || "Ledger analyzed. Metrics confirm operating parameters within projected variance.",
+      answer: aiText || "Ledger analyzed. Parameters verify within projected operating variance.",
     });
   } catch (error: any) {
-    console.error("Gemini Copilot Error:", error);
+    console.error("Copilot Engine Exception:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to process ledger analysis" },
+      { error: error?.message || "Internal Copilot processing fault." },
       { status: 500 }
     );
   }

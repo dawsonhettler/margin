@@ -11,6 +11,7 @@ import {
   Users,
   Tag,
   Megaphone,
+  Compass,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -38,7 +39,7 @@ export default function LandingPage() {
         "Headcount & Talent Expansion Simulator",
         "Pricing Elasticity & Churn Modeler",
         "Advertising & Acquisition CAC Engine",
-        "Gemini Executive AI Financial Copilot",
+        "Gemini 3.8 Flash Financial Copilot",
         "Multi-User Principal & CFO Seats",
         "Priority GAAP Statement Dossiers",
       ],
@@ -79,6 +80,12 @@ export default function LandingPage() {
 
         <div className="flex items-center space-x-6">
           <Link
+            href="/api/auth/demo"
+            className="text-[11px] tracking-[0.2em] uppercase text-emerald-400 hover:text-emerald-300 transition-colors hidden sm:inline-block font-mono"
+          >
+            [ Try Live Demo ]
+          </Link>
+          <Link
             href="/auth/login"
             className="text-[11px] tracking-[0.2em] uppercase text-[#A0A0A0] hover:text-white transition-colors"
           >
@@ -93,7 +100,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* 1. Hero Section */}
+      {/* Hero Section */}
       <section className="px-6 lg:px-12 pt-28 pb-32 max-w-7xl mx-auto border-b border-[#222222]">
         <div className="max-w-4xl">
           <span className="text-[10px] tracking-[0.3em] uppercase text-[#707070] block mb-5">
@@ -109,10 +116,11 @@ export default function LandingPage() {
 
           <div className="mt-12 flex flex-col sm:flex-row items-stretch sm:items-center space-y-4 sm:space-y-0 sm:space-x-5">
             <Link
-              href="/overview"
-              className="bg-white text-black px-8 py-3.5 text-xs tracking-[0.25em] uppercase font-medium text-center hover:bg-neutral-200 transition-colors"
+              href="/api/auth/demo"
+              className="bg-white text-black px-8 py-3.5 text-xs tracking-[0.25em] uppercase font-medium text-center hover:bg-neutral-200 transition-colors flex items-center justify-center space-x-2"
             >
-              Explore the Cockpit
+              <Compass size={14} className="mr-2" />
+              <span>Launch Interactive Sandbox</span>
             </Link>
             <Link
               href="/auth/register"
@@ -148,7 +156,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 2. Capabilities Matrix */}
+      {/* Capabilities Matrix */}
       <section id="capabilities" className="px-6 lg:px-12 py-28 max-w-7xl mx-auto border-b border-[#222222]">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 pb-6 border-b border-[#1c1c1c]">
           <div>
@@ -183,10 +191,10 @@ export default function LandingPage() {
                 Simulate hiring headcount, altering product pricing curves, or scaling advertising spend before committing real balance sheet reserves.
               </p>
             </div>
-            <a href="#simulator" className="text-[10px] tracking-[0.2em] uppercase text-white border-t border-[#1c1c1c] pt-4 flex items-center justify-between hover:text-neutral-300">
+            <Link href="/simulator" className="text-[10px] tracking-[0.2em] uppercase text-white border-t border-[#1c1c1c] pt-4 flex items-center justify-between hover:text-neutral-300">
               <span>View Simulator</span>
               <ArrowUpRight size={12} />
-            </a>
+            </Link>
           </div>
 
           <div className="border border-[#222222] bg-[#0A0A0A] p-8 flex flex-col justify-between h-80">
@@ -205,137 +213,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. Business Forecasting Section (#forecasting) */}
-      <section id="forecasting" className="px-6 lg:px-12 py-28 max-w-7xl mx-auto border-b border-[#222222]">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 pb-6 border-b border-[#1c1c1c]">
-          <div>
-            <span className="text-[10px] tracking-[0.25em] uppercase text-[#707070] block mb-2">Deterministic Trajectory</span>
-            <h2 className="font-serif text-4xl sm:text-5xl font-light text-white">Forward Cash Forecasting</h2>
-          </div>
-          <Link
-            href="/forecasting"
-            className="border border-[#333] hover:border-white text-xs uppercase tracking-[0.2em] px-5 py-2.5 transition-colors mt-4 md:mt-0 flex items-center space-x-2"
-          >
-            <span>Launch Forecasting Engine</span>
-            <ArrowUpRight size={13} />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-5 space-y-6">
-            <span className="text-xs uppercase tracking-widest text-emerald-400 block font-mono">
-              Horizon Coverage: 30D • 90D • 6M • 12M
-            </span>
-            <h3 className="font-serif text-3xl text-white font-light leading-snug">
-              Eliminate speculative estimates from your treasury planning.
-            </h3>
-            <p className="text-xs text-[#A0A0A0] font-light leading-relaxed">
-              MARGIN models deterministic forward cash curves based on your historical contracted inflow velocity and dynamic expense escalation, protecting liquidity thresholds.
-            </p>
-            <div className="space-y-3 pt-4 border-t border-[#222222] text-xs font-sans">
-              <div className="flex items-center space-x-3 text-neutral-300">
-                <Check size={14} className="text-white shrink-0" />
-                <span>Adjustable MoM customer expansion curves</span>
-              </div>
-              <div className="flex items-center space-x-3 text-neutral-300">
-                <Check size={14} className="text-white shrink-0" />
-                <span>Dynamic burn rate & inflation sensitivity toggles</span>
-              </div>
-              <div className="flex items-center space-x-3 text-neutral-300">
-                <Check size={14} className="text-white shrink-0" />
-                <span>Automated runway threshold alerts (&lt; 18 months)</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-7 border border-[#222222] bg-[#0A0A0A] p-8 space-y-6">
-            <div className="flex justify-between items-center pb-4 border-b border-[#222222]">
-              <span className="text-[10px] tracking-widest uppercase text-[#707070]">Forecast Model Canvas</span>
-              <span className="text-xs font-mono text-emerald-400">Accretive +12% MoM</span>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-center py-6 border-b border-[#1c1c1c]">
-              <div>
-                <span className="text-[10px] uppercase tracking-widest text-[#707070] block">Terminal Reserves</span>
-                <span className="font-serif text-2xl text-white mt-1 block">$748,000</span>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-widest text-[#707070] block">Forward Runway</span>
-                <span className="font-serif text-2xl text-white mt-1 block">22.4 Mo</span>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-widest text-[#707070] block">Operating Margin</span>
-                <span className="font-serif text-2xl text-emerald-400 mt-1 block">42.1%</span>
-              </div>
-            </div>
-            <div className="text-[11px] text-[#707070] leading-relaxed">
-              Projections update dynamically with zero backend latency as new ledger line items are recorded.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Business Simulator Section (#simulator) */}
-      <section id="simulator" className="px-6 lg:px-12 py-28 max-w-7xl mx-auto border-b border-[#222222]">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 pb-6 border-b border-[#1c1c1c]">
-          <div>
-            <span className="text-[10px] tracking-[0.25em] uppercase text-[#707070] block mb-2">Hypothetical Modeling</span>
-            <h2 className="font-serif text-4xl sm:text-5xl font-light text-white">Interactive Business Simulator</h2>
-          </div>
-          <Link
-            href="/simulator"
-            className="border border-[#333] hover:border-white text-xs uppercase tracking-[0.2em] px-5 py-2.5 transition-colors mt-4 md:mt-0 flex items-center space-x-2"
-          >
-            <span>Launch Simulator Environment</span>
-            <ArrowUpRight size={13} />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="border border-[#222222] bg-[#0A0A0A] p-8 flex flex-col justify-between h-84">
-            <div>
-              <Users size={20} className="text-[#A0A0A0] mb-6 stroke-1" />
-              <h3 className="font-serif text-2xl font-light text-white mb-2">Headcount Modeler</h3>
-              <p className="text-xs text-[#A0A0A0] font-light leading-relaxed">
-                Calculate exactly how adding engineering or sales personnel impacts monthly burn velocity, overhead tax burdens, and revised runway buffers.
-              </p>
-            </div>
-            <Link href="/simulator" className="text-[10px] tracking-[0.2em] uppercase text-white border-t border-[#1c1c1c] pt-4 flex items-center justify-between hover:text-neutral-300">
-              <span>Model Headcount</span>
-              <ArrowUpRight size={12} />
-            </Link>
-          </div>
-
-          <div className="border border-[#222222] bg-[#0A0A0A] p-8 flex flex-col justify-between h-84">
-            <div>
-              <Tag size={20} className="text-[#A0A0A0] mb-6 stroke-1" />
-              <h3 className="font-serif text-2xl font-light text-white mb-2">Pricing Elasticity</h3>
-              <p className="text-xs text-[#A0A0A0] font-light leading-relaxed">
-                Test tier price hikes against simulated customer churn risk. Determine if higher unit economics outperform volume contraction before executing.
-              </p>
-            </div>
-            <Link href="/simulator" className="text-[10px] tracking-[0.2em] uppercase text-white border-t border-[#1c1c1c] pt-4 flex items-center justify-between hover:text-neutral-300">
-              <span>Model Pricing</span>
-              <ArrowUpRight size={12} />
-            </Link>
-          </div>
-
-          <div className="border border-[#222222] bg-[#0A0A0A] p-8 flex flex-col justify-between h-84">
-            <div>
-              <Megaphone size={20} className="text-[#A0A0A0] mb-6 stroke-1" />
-              <h3 className="font-serif text-2xl font-light text-white mb-2">Acquisition CAC & LTV</h3>
-              <p className="text-xs text-[#A0A0A0] font-light leading-relaxed">
-                Evaluate paid growth deployments. Input target customer acquisition costs and lifetime values to verify net return on capital.
-              </p>
-            </div>
-            <Link href="/simulator" className="text-[10px] tracking-[0.2em] uppercase text-white border-t border-[#1c1c1c] pt-4 flex items-center justify-between hover:text-neutral-300">
-              <span>Model Growth</span>
-              <ArrowUpRight size={12} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Pricing Matrix Section (#pricing) */}
+      {/* Pricing Section */}
       <section id="pricing" className="px-6 lg:px-12 py-28 max-w-7xl mx-auto border-b border-[#222222]">
         <div className="text-center max-w-2xl mx-auto mb-20">
           <span className="text-[10px] tracking-[0.3em] uppercase text-[#707070] block mb-2">
@@ -401,24 +279,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 6. Final Editorial CTA */}
-      <section className="px-6 lg:px-12 py-32 max-w-7xl mx-auto text-center">
-        <span className="text-[10px] tracking-[0.3em] uppercase text-[#707070] block mb-4">
-          Institutional Certainty
-        </span>
-        <h2 className="font-serif text-5xl sm:text-7xl font-light text-white max-w-3xl mx-auto leading-tight">
-          Assume command of your balance sheet.
-        </h2>
-        <div className="mt-10 flex justify-center space-x-4">
-          <Link
-            href="/auth/register"
-            className="bg-white text-black px-10 py-4 text-xs tracking-[0.25em] uppercase font-medium hover:bg-neutral-200 transition-colors"
-          >
-            Provision Intelligence Seat
-          </Link>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-[#222222] px-6 lg:px-12 py-16 max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-[#707070] gap-6">
         <div>
@@ -426,10 +286,8 @@ export default function LandingPage() {
           <span>&copy; 2026 Margin Platform Inc. All rights reserved.</span>
         </div>
         <div className="flex space-x-8 text-[10px] tracking-[0.2em] uppercase">
+          <Link href="/api/auth/demo" className="text-emerald-400 font-mono">Try Live Demo</Link>
           <Link href="/overview" className="hover:text-white transition-colors">Overview</Link>
-          <a href="#forecasting" className="hover:text-white transition-colors">Forecasting</a>
-          <a href="#simulator" className="hover:text-white transition-colors">Simulator</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Capital Access</a>
           <Link href="/auth/login" className="hover:text-white transition-colors">Portal Login</Link>
         </div>
       </footer>

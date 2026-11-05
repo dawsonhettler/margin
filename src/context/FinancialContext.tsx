@@ -51,6 +51,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
+  // ONLY demo mode gets sample data. Real users start completely blank ([])
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -74,7 +75,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       netProfit: 0,
       profitMargin: 0,
       cashPosition: 150000,
-      runwayMonths: 24.0,
+      runwayMonths: 36.0,
     };
   });
 
@@ -85,14 +86,14 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isLoading, setIsLoading] = useState(true);
   const [scenarios, setScenarios] = useState<SavedScenario[]>([]);
 
-  // Robust financial recalculations with division-by-zero protection
+  // Recalculate financial KPIs dynamically
   useEffect(() => {
     let rev = 0;
     let exp = 0;
     let initialOpeningCash = isDemoMode ? 600000 : 150000;
 
     transactions.forEach((tx) => {
-      if (tx.description.includes("Opening Balance")) {
+      if (tx.description.includes("Opening Balance") || tx.description.includes("Initial Treasury")) {
         initialOpeningCash = tx.amount;
         return;
       }
@@ -148,6 +149,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .eq("business_id", currentBiz.id)
           .order("transaction_date", { ascending: false });
 
+        // If user has real transactions, load them. Otherwise keep it 100% empty ([])
         if (txData && txData.length > 0) {
           const mapped: Transaction[] = txData.map((t: any) => ({
             id: t.id,
@@ -182,7 +184,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
     } catch (err) {
-      console.warn("Supabase fetch fallback:", err);
+      console.warn("Supabase fetch error:", err);
     } finally {
       setIsLoading(false);
     }

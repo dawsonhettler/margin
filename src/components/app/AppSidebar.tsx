@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Compass,
+  Activity,
   BarChart3,
   TrendingUp,
   Receipt,
@@ -21,6 +22,7 @@ export const AppSidebar = () => {
   const links = [
     { name: "Overview", href: "/overview", icon: LayoutDashboard },
     { name: "Decision Room", href: "/decision-room", icon: Compass },
+    { name: "Pulse Feed", href: "/pulse", icon: Activity },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Revenue", href: "/revenue", icon: TrendingUp },
     { name: "Expenses", href: "/expenses", icon: Receipt },

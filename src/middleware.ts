@@ -14,7 +14,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Safely match any Supabase auth cookies
   const hasAuthCookie = request.cookies
     .getAll()
     .some((c) => c.name.startsWith("sb-"));
@@ -30,6 +29,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/overview/:path*",
+    "/decision-room/:path*",
+    "/pulse/:path*",
     "/analytics/:path*",
     "/revenue/:path*",
     "/expenses/:path*",

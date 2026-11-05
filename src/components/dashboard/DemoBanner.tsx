@@ -1,17 +1,31 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, ArrowRight, X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export const DemoBanner: React.FC = () => {
   const [isDemo, setIsDemo] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("demo") === "true" || document.cookie.includes("sb-demo-mode=true")) {
-      setIsDemo(true);
+    async function checkAuth() {
+      const supabase = createClient();
+      if (supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        // If a real user is signed in, never show the demo banner
+        if (user) {
+          setIsDemo(false);
+          return;
+        }
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("demo") === "true" || document.cookie.includes("sb-demo-mode=true")) {
+        setIsDemo(true);
+      }
     }
+    checkAuth();
   }, []);
 
   if (!isDemo || dismissed) return null;
@@ -27,7 +41,7 @@ export const DemoBanner: React.FC = () => {
           href="/auth/register"
           className="underline font-bold uppercase tracking-widest text-[11px] ml-2 hover:opacity-75 transition-opacity"
         >
-          Import Your Company & Claim Seat →
+          Claim Your Permanent Seat →
         </Link>
       </div>
       <button

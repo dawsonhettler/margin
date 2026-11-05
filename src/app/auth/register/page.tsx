@@ -21,14 +21,12 @@ export default function RegisterPage() {
 
     const supabase = createClient();
     if (!supabase) {
-      setTimeout(() => {
-        router.push("/overview");
-      }, 400);
+      router.push("/onboarding");
       return;
     }
 
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         data: {
@@ -42,7 +40,7 @@ export default function RegisterPage() {
       setErrorMsg(error.message);
       setLoading(false);
     } else {
-      router.push("/overview");
+      router.push("/onboarding");
     }
   };
 

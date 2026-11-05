@@ -41,5 +41,6 @@ export const config = {
     "/copilot/:path*",
     "/reports/:path*",
     "/settings/:path*",
+    "/onboarding/:path*",
   ],
 };

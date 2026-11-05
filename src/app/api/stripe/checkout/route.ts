@@ -43,6 +43,8 @@ export async function POST(req: Request) {
         },
       ],
       mode: "subscription",
+      // Bypass managed payments tax code requirement on dynamic line items
+      managed_payments: { enabled: false } as any,
       success_url: `${origin}/overview?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/settings?canceled=true`,
     });

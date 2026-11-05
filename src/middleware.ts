@@ -31,6 +31,7 @@ export const config = {
     "/overview/:path*",
     "/decision-room/:path*",
     "/pulse/:path*",
+    "/benchmarks/:path*",
     "/analytics/:path*",
     "/revenue/:path*",
     "/expenses/:path*",

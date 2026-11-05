@@ -29,7 +29,6 @@ export default function SettingsPage() {
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Network error connecting to billing engine.");
-      setLoading(null);
       setLoadingTier(null);
     }
   };

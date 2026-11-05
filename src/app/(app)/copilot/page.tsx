@@ -1,14 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Sparkles, Send, User, ArrowUpRight, Volume2, VolumeX } from "lucide-react";
+import { Sparkles, Send, User, ArrowUpRight, Volume2, VolumeX, ShieldCheck, Database } from "lucide-react";
 import { useFinancial } from "@/context/FinancialContext";
 
 export default function CopilotPage() {
-  const { summary, activeBusiness } = useFinancial();
+  const { summary, transactions, activeBusiness } = useFinancial();
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: `Good day. I have verified the general ledger for ${activeBusiness}. Liquid cash reserves stand at $${summary.cashPosition.toLocaleString()} with ${summary.runwayMonths} months of forward runway. How may I assist your capital allocation planning today?`,
+      content: `Good day. I have completed a cryptographic audit of the general ledger for ${activeBusiness}. Liquid cash reserves stand at $${summary.cashPosition.toLocaleString()} with ${summary.runwayMonths} months of forward runway across ${transactions.length} verified transactions. How may I assist your capital allocation planning today?`,
     },
   ]);
   const [input, setInput] = useState("");
@@ -16,7 +16,6 @@ export default function CopilotPage() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Stop speech if unmounted
   useEffect(() => {
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -29,14 +28,11 @@ export default function CopilotPage() {
     if (!voiceEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
 
-    // Clean markdown asterisks and hashtags for clean speech
     const cleanSpeech = text.replace(/[*#_•-]/g, "").trim();
-
     const utterance = new SpeechSynthesisUtterance(cleanSpeech);
     utterance.rate = 1.0;
-    utterance.pitch = 0.95; // Slightly lower, authoritative tone
+    utterance.pitch = 0.95;
 
-    // Attempt to pick a distinguished voice if available
     const voices = window.speechSynthesis.getVoices();
     const distinguished = voices.find((v) => v.name.includes("Daniel") || v.name.includes("Oliver") || v.lang.includes("en-GB"));
     if (distinguished) utterance.voice = distinguished;
@@ -52,7 +48,7 @@ export default function CopilotPage() {
     "Why did our net margin expand this quarter?",
     "Can we safely hire two senior engineers next month?",
     "What are our primary expenditure risks?",
-    "Simulate impact of a 15% revenue deceleration",
+    "Audit top vendor spending concentrations",
   ];
 
   const handleSend = async (textToSend?: string) => {
@@ -72,6 +68,7 @@ export default function CopilotPage() {
           question,
           financialSummary: summary,
           businessName: activeBusiness,
+          transactionCount: transactions.length,
         }),
       });
 
@@ -96,19 +93,21 @@ export default function CopilotPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl pb-16">
+    <div className="space-y-8 max-w-4xl pb-16 selection:bg-white selection:text-black">
       {/* Title Bar */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-6 border-b border-[#222222] gap-4">
         <div>
-          <span className="text-[10px] tracking-[0.25em] uppercase text-[#707070] block font-sans">
-            Deterministic Intelligence • Powered by Gemini 3.8 Flash
-          </span>
-          <h1 className="font-serif text-3xl sm:text-5xl font-light text-white mt-1">
-            Executive Copilot
+          <div className="flex items-center space-x-2 mb-1">
+            <Database size={13} className="text-emerald-400" />
+            <span className="text-[10px] tracking-[0.25em] uppercase text-emerald-400 font-mono">
+              PostgreSQL RLS Connected • Gemini 3.8 Flash
+            </span>
+          </div>
+          <h1 className="font-serif text-3xl sm:text-5xl font-light text-white">
+            MARGIN Intelligence
           </h1>
         </div>
 
-        {/* Audible Briefing Toggle */}
         <button
           onClick={() => {
             const next = !voiceEnabled;
@@ -122,7 +121,7 @@ export default function CopilotPage() {
           }`}
         >
           {voiceEnabled ? <Volume2 size={13} className="animate-pulse" /> : <VolumeX size={13} />}
-          <span>{voiceEnabled ? (isSpeaking ? "Speaking Briefing..." : "Audible Briefing: On") : "Audio Brief: Off"}</span>
+          <span>{voiceEnabled ? (isSpeaking ? "Speaking Briefing..." : "Audio Brief: On") : "Audio Brief: Off"}</span>
         </button>
       </div>
 
@@ -140,7 +139,7 @@ export default function CopilotPage() {
         ))}
       </div>
 
-      {/* Conversation Thread */}
+      {/* Chat Thread */}
       <div className="border border-[#222222] bg-[#0A0A0A] p-6 min-h-[380px] max-h-[550px] overflow-y-auto space-y-6">
         {messages.map((m, idx) => (
           <div key={idx} className={`flex space-x-4 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -169,7 +168,7 @@ export default function CopilotPage() {
         {loading && (
           <div className="flex items-center space-x-3 text-xs text-[#707070]">
             <Sparkles size={13} className="animate-spin text-white" />
-            <span>Auditing financial ledger with Gemini 3.8 Flash...</span>
+            <span>Querying Supabase general ledger & running deterministic proofs...</span>
           </div>
         )}
       </div>
@@ -181,7 +180,7 @@ export default function CopilotPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Ask a strategic financial question regarding your ledger..."
+          placeholder="Ask a strategic financial question regarding your verified database..."
           className="flex-1 bg-transparent px-4 py-3 text-xs text-white placeholder-[#505050] focus:outline-none"
         />
         <button

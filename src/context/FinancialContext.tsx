@@ -40,8 +40,46 @@ interface FinancialContextType {
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
-  const [summary, setSummary] = useState<FinancialSummary>(INITIAL_SUMMARY);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+
+  // Check if viewing public demo
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("demo") === "true" || document.cookie.includes("sb-demo-mode=true")) {
+        setIsDemoMode(true);
+      }
+    }
+  }, []);
+
+  // Real users start empty ([]), demo users start with sample data (INITIAL_TRANSACTIONS)
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("demo") === "true" || document.cookie.includes("sb-demo-mode=true")) {
+        return INITIAL_TRANSACTIONS;
+      }
+    }
+    return [];
+  });
+
+  const [summary, setSummary] = useState<FinancialSummary>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("demo") === "true" || document.cookie.includes("sb-demo-mode=true")) {
+        return INITIAL_SUMMARY;
+      }
+    }
+    return {
+      totalRevenue: 0,
+      totalExpenses: 0,
+      netProfit: 0,
+      profitMargin: 0,
+      cashPosition: 100000, // Starting baseline liquid capital for new signups
+      runwayMonths: 12.0,
+    };
+  });
+
   const [activeBusiness, setActiveBusiness] = useState("Vanguard Studio Inc.");
   const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -61,7 +99,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const net = rev - exp;
     const margin = rev > 0 ? parseFloat(((net / rev) * 100).toFixed(1)) : 0;
-    const cash = 600000 + net;
+    const baseCash = isDemoMode ? 600000 : 100000;
+    const cash = baseCash + net;
     const runway = exp > 0 ? parseFloat((cash / (exp / 3)).toFixed(1)) : 24.0;
 
     setSummary({
@@ -72,7 +111,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       cashPosition: cash,
       runwayMonths: runway,
     });
-  }, [transactions]);
+  }, [transactions, isDemoMode]);
 
   // Load real data from Supabase if logged in
   const fetchSupabaseData = useCallback(async () => {
@@ -89,7 +128,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
 
-      // Fetch user's business
       const { data: bizData } = await supabase
         .from("businesses")
         .select("id, business_name")
@@ -102,7 +140,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setActiveBusiness(currentBiz.business_name);
         setActiveBusinessId(currentBiz.id);
 
-        // Fetch transactions for this business
         const { data: txData } = await supabase
           .from("transactions")
           .select("*")
@@ -119,9 +156,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             date: t.transaction_date,
           }));
           setTransactions(mapped);
+        } else {
+          setTransactions([]); // Clean slate for new users
         }
 
-        // Fetch saved decision scenarios
         const { data: scenarioData } = await supabase
           .from("business_scenarios")
           .select("*")

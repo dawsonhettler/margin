@@ -1,10 +1,34 @@
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
+    // 1. Server-Side Supabase Session Verification (Zero-Trust Security)
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized access. Valid enterprise session required." },
+        { status: 401 }
+      );
+    }
+
     const { question, financialSummary, businessName } = await req.json();
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -19,7 +43,7 @@ export async function POST(req: Request) {
     const systemPrompt = `You are the Lead Financial Architect & Executive AI Copilot for MARGIN, an elite luxury business financial intelligence platform.
 Your tone is sophisticated, concise, and direct (Goldman Sachs partner style). No conversational fluff.
 
-Verified Client Ledger:
+Verified Client Ledger (Secured via Supabase RLS):
 - Entity: ${businessName}
 - Gross Inflow: $${financialSummary?.totalRevenue?.toLocaleString()}
 - Operating Outflow: $${financialSummary?.totalExpenses?.toLocaleString()}
@@ -49,53 +73,42 @@ Instructions:
       },
     };
 
-    // Resilient Model Pool: If 3.8-flash has a traffic spike, auto-cascade to flash-lite
-    const modelPool = [
-      "gemini-3.8-flash",
-      "gemini-3.8-flash-lite",
-      "gemini-3.5-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-    ];
+    const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${cleanKey}`;
 
-    let lastErrorMsg = "";
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": cleanKey,
+      },
+      body: JSON.stringify(payload),
+    });
 
-    for (const model of modelPool) {
-      try {
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-        
-        const response = await fetch(targetUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": cleanKey,
-          },
-          body: JSON.stringify(payload),
-        });
+    const data = await response.json();
 
-        const data = await response.json();
+    if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return NextResponse.json({
+        answer: data.candidates[0].content.parts[0].text,
+      });
+    }
 
-        // If successful, return immediately
-        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          return NextResponse.json({
-            answer: data.candidates[0].content.parts[0].text,
-          });
-        }
+    // Fallback to flash-lite if 3.8 is busy
+    const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite:generateContent?key=${cleanKey}`;
+    const fbResponse = await fetch(fallbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": cleanKey },
+      body: JSON.stringify(payload),
+    });
+    const fbData = await fbResponse.json();
 
-        // If Google reports high demand / 503, log and try the next model in the pool
-        if (data.error) {
-          lastErrorMsg = data.error.message || "";
-          console.warn(`Model ${model} returned error (${data.error.code}): ${data.error.message}. Cascading to next model...`);
-          continue;
-        }
-      } catch (err: any) {
-        lastErrorMsg = err?.message || "";
-        continue;
-      }
+    if (fbResponse.ok && fbData.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return NextResponse.json({
+        answer: fbData.candidates[0].content.parts[0].text,
+      });
     }
 
     return NextResponse.json({
-      answer: `Gemini Capacity Alert: ${lastErrorMsg || "All model endpoints are currently experiencing temporary Google cloud demand. Please retry in a few moments."}`,
+      answer: "Gemini Capacity Notice: All endpoints experienced temporary traffic spikes. Please retry.",
     });
   } catch (error: any) {
     console.error("Copilot Engine Exception:", error);

@@ -34,32 +34,10 @@ const FinancialContext = createContext<FinancialContextType | undefined>(undefin
 
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDemoMode, setIsDemoMode] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("demo") === "true") setIsDemoMode(true);
-    }
-  }, []);
-
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("demo") === "true") return INITIAL_TRANSACTIONS;
-    }
-    return [];
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<FinancialSummary>({
+    totalRevenue: 0, totalExpenses: 0, netProfit: 0, profitMargin: 0, cashPosition: 150000, runwayMonths: 36.0
   });
-
-  const [summary, setSummary] = useState<FinancialSummary>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("demo") === "true") return INITIAL_SUMMARY;
-    }
-    return {
-      totalRevenue: 0, totalExpenses: 0, netProfit: 0, profitMargin: 0, cashPosition: 150000, runwayMonths: 36.0
-    };
-  });
-
   const [activeBusiness, setActiveBusiness] = useState("Vanguard Studio Inc.");
   const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -68,33 +46,29 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [scenarios, setScenarios] = useState<SavedScenario[]>([]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const demoCookie = document.cookie.includes("sb-demo-mode=true");
+    if (params.get("demo") === "true" || demoCookie) {
+      setIsDemoMode(true);
+      setTransactions(INITIAL_TRANSACTIONS);
+    }
+  }, []);
+
+  useEffect(() => {
     let rev = 0;
     let exp = 0;
     let initialOpeningCash = isDemoMode ? 600000 : 150000;
-
     transactions.forEach((tx) => {
-      if (tx.description.includes("Opening Balance")) {
-        initialOpeningCash = tx.amount;
-        return;
-      }
+      if (tx.description.includes("Opening Balance")) { initialOpeningCash = tx.amount; return; }
       if (tx.type === "income") rev += tx.amount;
       if (tx.type === "expense") exp += tx.amount;
     });
-
     const net = rev - exp;
     const margin = rev > 0 ? parseFloat(((net / rev) * 100).toFixed(1)) : 0;
     const cash = initialOpeningCash + net;
     const monthlyBurn = exp > 0 ? exp / 3 : 1;
     const runway = monthlyBurn > 0 ? parseFloat((cash / monthlyBurn).toFixed(1)) : 36.0;
-
-    setSummary({
-      totalRevenue: rev,
-      totalExpenses: exp,
-      netProfit: net,
-      profitMargin: isNaN(margin) ? 0 : margin,
-      cashPosition: isNaN(cash) ? 150000 : cash,
-      runwayMonths: isFinite(runway) ? runway : 36.0,
-    });
+    setSummary({ totalRevenue: rev, totalExpenses: exp, netProfit: net, profitMargin: isNaN(margin) ? 0 : margin, cashPosition: isNaN(cash) ? 150000 : cash, runwayMonths: isFinite(runway) ? runway : 36.0 });
   }, [transactions, isDemoMode]);
 
   const fetchSupabaseData = useCallback(async () => {
@@ -103,15 +77,13 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setIsLoading(false); return; }
-
       const { data: bizData } = await supabase.from("businesses").select("id, business_name").eq("owner_id", user.id).limit(1);
       if (bizData && bizData.length > 0) {
         const currentBiz = bizData[0];
         setActiveBusiness(currentBiz.business_name);
         setActiveBusinessId(currentBiz.id);
-        const { data: txData } = await supabase.from("transactions").select("*").eq("business_id", currentBiz.id).order("transaction_date", { ascending: false });
+        const { data: txData } = await supabase.from("transactions").select("*").eq("business_id", currentBiz.id);
         if (txData) setTransactions(txData.map((t: any) => ({ id: t.id, description: t.description, amount: parseFloat(t.amount), type: t.transaction_type, category: t.category, date: t.transaction_date })));
-        
         const { data: scenarioData } = await supabase.from("business_scenarios").select("*").eq("business_id", currentBiz.id);
         if (scenarioData) setScenarios(scenarioData.map((s: any) => ({ id: s.id, name: s.scenario_name, decisionType: s.scenario_data?.decisionType, assumptions: s.scenario_data?.assumptions, outcomes: s.scenario_data?.outcomes, createdAt: s.created_at })));
       }
@@ -152,10 +124,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (supabase) await supabase.from("business_scenarios").delete().eq("id", id);
   };
 
-  const openRecordModal = (type: "income" | "expense" = "income") => {
-    setModalDefaultType(type);
-    setIsRecordModalOpen(true);
-  };
+  const openRecordModal = (type: "income" | "expense" = "income") => { setModalDefaultType(type); setIsRecordModalOpen(true); };
 
   return (
     <FinancialContext.Provider value={{ transactions, summary, addTransaction, deleteTransaction, activeBusiness, activeBusinessId, setActiveBusiness, isRecordModalOpen, setIsRecordModalOpen, modalDefaultType, openRecordModal, isLoading, scenarios, saveScenario, deleteScenario }}>

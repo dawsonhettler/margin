@@ -3,41 +3,29 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Define the luxury stack */
+    --font-serif: "Didot", "Bodoni Moda", "Cormorant Garamond", Georgia, serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Display", sans-serif;
+  }
+
   body {
     background-color: #000000;
     color: #A0A0A0;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-family: var(--font-sans);
     margin: 0;
     padding: 0;
   }
-}
 
-@layer components {
-  .liquid-glass {
-    @apply border border-white/[0.08] bg-black/40 backdrop-blur-md transition-all duration-300;
-  }
-  
-  .liquid-glass:hover {
-    @apply border-white/20 bg-black/60 shadow-[0_0_20px_rgba(255,255,255,0.03)];
-  }
-
-  .apple-press {
-    @apply active:scale-[0.98] transition-transform duration-100 ease-out;
+  h1, h2, h3, h4, .font-serif {
+    font-family: var(--font-serif);
   }
 }
 
-/* Luxury minimal scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.liquid-glass {
+  @apply border border-white/[0.08] bg-black/40 backdrop-blur-md;
 }
-::-webkit-scrollbar-track {
-  background: #000000;
-}
-::-webkit-scrollbar-thumb {
-  background: #222222;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #333333;
-}
+
+/* Minimal luxury scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 99px; }

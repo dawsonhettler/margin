@@ -42,7 +42,6 @@ const FinancialContext = createContext<FinancialContextType | undefined>(undefin
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDemoMode, setIsDemoMode] = useState(false);
 
-  // Check if viewing public demo
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -52,7 +51,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
-  // Real users start empty ([]), demo users start with sample data (INITIAL_TRANSACTIONS)
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -75,8 +73,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       totalExpenses: 0,
       netProfit: 0,
       profitMargin: 0,
-      cashPosition: 100000, // Starting baseline liquid capital for new signups
-      runwayMonths: 12.0,
+      cashPosition: 150000,
+      runwayMonths: 24.0,
     };
   });
 
@@ -87,33 +85,37 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isLoading, setIsLoading] = useState(true);
   const [scenarios, setScenarios] = useState<SavedScenario[]>([]);
 
-  // Recalculate financial KPIs dynamically whenever transactions change
+  // Robust financial recalculations with division-by-zero protection
   useEffect(() => {
     let rev = 0;
     let exp = 0;
+    let initialOpeningCash = isDemoMode ? 600000 : 150000;
 
     transactions.forEach((tx) => {
+      if (tx.description.includes("Opening Balance")) {
+        initialOpeningCash = tx.amount;
+        return;
+      }
       if (tx.type === "income") rev += tx.amount;
       if (tx.type === "expense") exp += tx.amount;
     });
 
     const net = rev - exp;
     const margin = rev > 0 ? parseFloat(((net / rev) * 100).toFixed(1)) : 0;
-    const baseCash = isDemoMode ? 600000 : 100000;
-    const cash = baseCash + net;
-    const runway = exp > 0 ? parseFloat((cash / (exp / 3)).toFixed(1)) : 24.0;
+    const cash = initialOpeningCash + net;
+    const monthlyBurn = exp > 0 ? exp / 3 : 1;
+    const runway = monthlyBurn > 0 ? parseFloat((cash / monthlyBurn).toFixed(1)) : 36.0;
 
     setSummary({
       totalRevenue: rev,
       totalExpenses: exp,
       netProfit: net,
-      profitMargin: margin,
-      cashPosition: cash,
-      runwayMonths: runway,
+      profitMargin: isNaN(margin) ? 0 : margin,
+      cashPosition: isNaN(cash) ? 150000 : cash,
+      runwayMonths: isNaN(runway) || !isFinite(runway) ? 36.0 : runway,
     });
   }, [transactions, isDemoMode]);
 
-  // Load real data from Supabase if logged in
   const fetchSupabaseData = useCallback(async () => {
     const supabase = createClient();
     if (!supabase) {
@@ -157,7 +159,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }));
           setTransactions(mapped);
         } else {
-          setTransactions([]); // Clean slate for new users
+          setTransactions([]);
         }
 
         const { data: scenarioData } = await supabase

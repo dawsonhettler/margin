@@ -156,7 +156,8 @@ export const RecordTransactionModal: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button type="primary" size="sm">
+            {/* Fixed: variant="primary" and type="submit" */}
+            <Button type="submit" variant="primary" size="sm">
               Commit Ledger Entry
             </Button>
           </div>

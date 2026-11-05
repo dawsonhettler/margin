@@ -83,47 +83,51 @@ export const AppHeader = () => {
 
   return (
     <>
-      <header className="h-16 border-b border-white/[0.08] bg-black/70 backdrop-blur-2xl px-6 flex items-center justify-between sticky top-0 z-40 print:hidden transition-all duration-200">
+      {/* Increased z-index to z-50 so header floats cleanly above all content */}
+      <header className="h-16 border-b border-white/[0.08] bg-black/90 backdrop-blur-2xl px-6 flex items-center justify-between sticky top-0 z-50 print:hidden transition-all duration-200">
         <div className="flex items-center space-x-6">
           <Link href="/" className="md:hidden">
             <span className="font-serif tracking-[0.2em] text-lg font-light text-white">MARGIN</span>
           </Link>
 
-          {/* Spatial Glass Entity Switcher */}
+          {/* Entity Profile Dropdown with absolute high elevation z-50 */}
           <div className="relative">
             <button
               onClick={() => setOpen(!open)}
-              className="flex items-center space-x-2 text-xs tracking-widest uppercase text-neutral-200 border border-white/10 bg-white/[0.02] px-3.5 py-1.5 hover:border-white/40 hover:bg-white/[0.06] transition-all cursor-pointer backdrop-blur-md apple-press shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
+              className="flex items-center space-x-2 text-xs tracking-widest uppercase text-neutral-200 border border-white/15 bg-white/[0.04] px-3.5 py-1.5 hover:border-white/60 hover:bg-white/[0.08] transition-all cursor-pointer backdrop-blur-md apple-press shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
             >
-              <Building2 size={13} className="text-[#808080]" />
+              <Building2 size={13} className="text-neutral-400" />
               <span className="font-medium">{activeBusiness}</span>
-              <ChevronDown size={12} className="text-[#808080]" />
+              <ChevronDown size={12} className={`text-neutral-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
             </button>
 
             {open && (
-              <div className="absolute left-0 mt-2 w-64 liquid-glass-elevated py-1.5 z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-3 py-2 text-[9px] uppercase tracking-widest text-[#707070] border-b border-white/[0.08]">
+              <div className="absolute left-0 mt-2 w-72 bg-black/95 border border-white/20 backdrop-blur-3xl py-2 z-[100] shadow-[0_20px_60px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3.5 py-2 text-[9px] uppercase tracking-[0.25em] text-neutral-500 border-b border-white/[0.08]">
                   Active Enterprise Entity
                 </div>
-                {entityList.map((b) => (
-                  <button
-                    key={b}
-                    onClick={() => { setActiveBusiness(b); setOpen(false); }}
-                    className={`w-full text-left px-3.5 py-2.5 text-xs transition-colors cursor-pointer ${
-                      activeBusiness === b ? "text-white bg-white/10 font-medium" : "text-[#808080] hover:text-white hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    {b}
-                  </button>
-                ))}
+                <div className="py-1">
+                  {entityList.map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => { setActiveBusiness(b); setOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-xs transition-colors cursor-pointer flex items-center justify-between ${
+                        activeBusiness === b ? "text-white bg-white/10 font-medium" : "text-neutral-400 hover:text-white hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <span>{b}</span>
+                      {activeBusiness === b && <span className="w-1.5 h-1.5 bg-white rounded-full"></span>}
+                    </button>
+                  ))}
+                </div>
 
-                <div className="border-t border-white/[0.08] p-2">
+                <div className="border-t border-white/[0.08] p-2.5 mt-1">
                   {!isCreating ? (
                     <button
                       onClick={() => setIsCreating(true)}
-                      className="flex items-center space-x-1.5 text-[10px] tracking-wider uppercase text-neutral-400 hover:text-white transition-colors w-full px-2 py-1.5"
+                      className="flex items-center space-x-2 text-[10px] tracking-wider uppercase text-neutral-300 hover:text-white transition-colors w-full px-2 py-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 cursor-pointer"
                     >
-                      <Plus size={11} />
+                      <Plus size={12} />
                       <span>Create Entity Profile</span>
                     </button>
                   ) : (
@@ -133,20 +137,20 @@ export const AppHeader = () => {
                         placeholder="Entity name..."
                         value={newEntityName}
                         onChange={(e) => setNewEntityName(e.target.value)}
-                        className="w-full bg-black/80 border border-white/20 px-2 py-1 text-xs text-white placeholder-[#505050] focus:outline-none focus:border-white"
+                        className="w-full bg-black border border-white/30 px-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white font-sans"
                         autoFocus
                       />
-                      <div className="flex space-x-1">
+                      <div className="flex space-x-2 pt-1">
                         <button
                           type="submit"
-                          className="bg-white text-black px-2 py-1 text-[9px] uppercase tracking-widest font-medium"
+                          className="bg-white text-black px-3 py-1 text-[10px] uppercase tracking-widest font-medium cursor-pointer"
                         >
-                          Save
+                          Save Entity
                         </button>
                         <button
                           type="button"
                           onClick={() => setIsCreating(false)}
-                          className="text-[#707070] px-2 py-1 text-[9px] uppercase tracking-widest"
+                          className="text-neutral-400 px-2 py-1 text-[10px] uppercase tracking-widest hover:text-white cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -161,7 +165,7 @@ export const AppHeader = () => {
           {/* Quick Command Bar Trigger */}
           <button
             onClick={() => setIsCommandOpen(true)}
-            className="hidden sm:flex items-center space-x-3 text-xs border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/30 px-3.5 py-1.5 text-[#707070] hover:text-white transition-all cursor-pointer backdrop-blur-md apple-press shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
+            className="hidden sm:flex items-center space-x-3 text-xs border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/30 px-3.5 py-1.5 text-neutral-400 hover:text-white transition-all cursor-pointer backdrop-blur-md apple-press shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
           >
             <Search size={12} />
             <span className="text-[11px] tracking-wider font-light">Command Palette...</span>
@@ -175,12 +179,12 @@ export const AppHeader = () => {
         <div className="flex items-center space-x-5">
           <button
             onClick={handleSignOut}
-            className="flex items-center space-x-1.5 text-[11px] uppercase tracking-widest text-[#707070] hover:text-white transition-colors cursor-pointer"
+            className="flex items-center space-x-1.5 text-[11px] uppercase tracking-widest text-neutral-400 hover:text-white transition-colors cursor-pointer"
           >
             <LogOut size={12} />
             <span>Sign Out</span>
           </button>
-          <div className="w-8 h-8 border border-white/10 bg-white/[0.03] backdrop-blur-md flex items-center justify-center text-[#707070] hover:text-white hover:border-white/40 transition-colors shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
+          <div className="w-8 h-8 border border-white/10 bg-white/[0.03] backdrop-blur-md flex items-center justify-center text-neutral-400 hover:text-white hover:border-white/40 transition-colors shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
             <User size={14} />
           </div>
         </div>

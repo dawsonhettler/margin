@@ -1,9 +1,13 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
   LayoutDashboard,
+  Compass,
+  Activity,
+  Award,
+  GitCommit,
   BarChart3,
   TrendingUp,
   Receipt,
@@ -14,8 +18,8 @@ import {
   UploadCloud,
   Plus,
   ArrowRight,
-  X,
-  CreditCard,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 import { useFinancial } from "@/context/FinancialContext";
 
@@ -31,7 +35,6 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, onOpenImportC
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Close on Escape, Open on Cmd+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -46,81 +49,104 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, onOpenImportC
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Reset index on search
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
 
-  // Static Platform Actions
-  const staticActions = [
+  // Linear-style command catalog with keyboard shortcut badges
+  const actions = [
     {
       id: "act-income",
-      title: "Record Inflow / Income",
-      category: "Action",
+      title: "Record Inflow / Income Transaction",
+      shortcut: "I",
+      category: "Ledger Action",
       icon: Plus,
       run: () => { openRecordModal("income"); onClose(); },
     },
     {
       id: "act-expense",
       title: "Record Operating Disbursement",
-      category: "Action",
+      shortcut: "E",
+      category: "Ledger Action",
       icon: Plus,
       run: () => { openRecordModal("expense"); onClose(); },
     },
     {
       id: "act-import",
       title: "Import Bank & Stripe Statement (CSV)",
-      category: "Action",
+      shortcut: "⇧I",
+      category: "Data Ingestion",
       icon: UploadCloud,
       run: () => { if (onOpenImportCsv) onOpenImportCsv(); onClose(); },
     },
     {
       id: "act-export",
       title: "Export P&L & Balance Sheet Dossier (PDF)",
-      category: "Action",
+      shortcut: "P",
+      category: "Reporting",
       icon: FileDown,
       run: () => { router.push("/reports"); onClose(); },
     },
     {
       id: "nav-overview",
       title: "Go to Financial Cockpit",
+      shortcut: "G O",
       category: "Navigation",
       icon: LayoutDashboard,
       run: () => { router.push("/overview"); onClose(); },
     },
     {
+      id: "nav-decision",
+      title: "Open Decision Room War Room",
+      shortcut: "G D",
+      category: "Navigation",
+      icon: Compass,
+      run: () => { router.push("/decision-room"); onClose(); },
+    },
+    {
+      id: "nav-pulse",
+      title: "View Pulse Feed & Health Anomalies",
+      shortcut: "G U",
+      category: "Navigation",
+      icon: Activity,
+      run: () => { router.push("/pulse"); onClose(); },
+    },
+    {
       id: "nav-simulator",
-      title: "Go to Business Simulator (Headcount / Pricing)",
+      title: "Launch Business Simulator & Monte Carlo",
+      shortcut: "G S",
       category: "Navigation",
       icon: Sliders,
       run: () => { router.push("/simulator"); onClose(); },
     },
     {
-      id: "nav-forecasting",
-      title: "Go to Cash Flow Forecasting",
-      category: "Navigation",
-      icon: LineChart,
-      run: () => { router.push("/forecasting"); onClose(); },
-    },
-    {
       id: "nav-copilot",
-      title: "Go to Executive AI Copilot",
+      title: "Engage Gemini AI Intelligence Copilot",
+      shortcut: "G C",
       category: "Navigation",
       icon: Bot,
       run: () => { router.push("/copilot"); onClose(); },
     },
     {
-      id: "nav-analytics",
-      title: "Go to Financial Analytics",
+      id: "nav-benchmarks",
+      title: "View Business Benchmarks Matrix",
+      shortcut: "G B",
       category: "Navigation",
-      icon: BarChart3,
-      run: () => { router.push("/analytics"); onClose(); },
+      icon: Award,
+      run: () => { router.push("/benchmarks"); onClose(); },
+    },
+    {
+      id: "nav-timeline",
+      title: "Open Financial Timeline Audit Log",
+      shortcut: "G T",
+      category: "Navigation",
+      icon: GitCommit,
+      run: () => { router.push("/timeline"); onClose(); },
     },
   ];
 
-  // Dynamic Ledger Search Results
   const matchingTransactions = query.trim()
-    ? transactions
+    ? (transactions || [])
         .filter((t) =>
           t.description.toLowerCase().includes(query.toLowerCase()) ||
           t.amount.toString().includes(query) ||
@@ -130,7 +156,8 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, onOpenImportC
         .map((t) => ({
           id: `tx-${t.id}`,
           title: `${t.description} — ${t.type === "income" ? "+" : "-"}$${t.amount.toLocaleString()} (${t.category})`,
-          category: "General Ledger Record",
+          shortcut: t.type === "income" ? "IN" : "EX",
+          category: "Ledger Record",
           icon: t.type === "income" ? TrendingUp : Receipt,
           run: () => {
             router.push(t.type === "income" ? "/revenue" : "/expenses");
@@ -139,14 +166,14 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, onOpenImportC
         }))
     : [];
 
-  const filteredActions = staticActions.filter((a) =>
-    a.title.toLowerCase().includes(query.toLowerCase()) ||
-    a.category.toLowerCase().includes(query.toLowerCase())
+  const filteredActions = actions.filter(
+    (a) =>
+      a.title.toLowerCase().includes(query.toLowerCase()) ||
+      a.category.toLowerCase().includes(query.toLowerCase())
   );
 
   const allItems = [...filteredActions, ...matchingTransactions];
 
-  // Keyboard Up/Down navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -163,33 +190,31 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, onOpenImportC
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/85 backdrop-blur-md pt-[15vh] p-4">
-      <div className="bg-[#0A0A0A] border border-[#222222] w-full max-w-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-        {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-[#222222] bg-black">
-          <Search size={16} className="text-[#707070] mr-3 shrink-0" />
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/85 backdrop-blur-xl pt-[14vh] p-4 animate-in fade-in duration-200">
+      <div className="liquid-glass-elevated w-full max-w-2xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.9)] border border-white/15">
+        
+        {/* Linear Search Input Header */}
+        <div className="flex items-center px-5 py-4 border-b border-white/[0.08] bg-black/40">
+          <Search size={16} className="text-neutral-400 mr-3.5 shrink-0" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a command, navigate, or search ledger..."
-            className="w-full bg-transparent text-sm text-white placeholder-[#505050] focus:outline-none font-sans"
+            placeholder="Type a command or search ledger records..."
+            className="w-full bg-transparent text-sm text-white placeholder-neutral-500 focus:outline-none font-sans tracking-wide"
             autoFocus
           />
-          <button
-            onClick={onClose}
-            className="text-[10px] tracking-widest uppercase border border-[#222222] px-2 py-1 text-[#707070] hover:text-white"
-          >
+          <span className="text-[9px] font-mono tracking-widest text-neutral-500 border border-white/10 px-2 py-1 bg-white/[0.03]">
             ESC
-          </button>
+          </span>
         </div>
 
-        {/* Results List */}
-        <div className="max-h-80 overflow-y-auto divide-y divide-[#161616]">
+        {/* Linear Command Results List */}
+        <div className="max-h-96 overflow-y-auto p-2 space-y-1">
           {allItems.length === 0 ? (
-            <div className="py-12 text-center text-xs text-[#707070]">
-              No matching commands or ledger entries found.
+            <div className="py-14 text-center text-xs text-neutral-500 font-light">
+              No matching commands or ledger records found.
             </div>
           ) : (
             allItems.map((item, idx) => {
@@ -200,19 +225,26 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, onOpenImportC
                   key={item.id}
                   onClick={item.run}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center justify-between px-4 py-3 cursor-pointer text-xs transition-colors ${
-                    isSelected ? "bg-[#161616] text-white" : "text-[#A0A0A0] hover:bg-[#121212]"
+                  className={`flex items-center justify-between px-3.5 py-3 cursor-pointer text-xs transition-all rounded-sm ${
+                    isSelected
+                      ? "bg-white/[0.09] text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
+                      : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"
                   }`}
                 >
                   <div className="flex items-center space-x-3 truncate">
-                    <Icon size={14} className={isSelected ? "text-white" : "text-[#707070]"} />
-                    <span className="font-light truncate">{item.title}</span>
+                    <div className={`p-1.5 rounded-sm border ${isSelected ? "border-white/30 bg-white/10 text-white" : "border-white/10 bg-black text-neutral-400"}`}>
+                      <Icon size={13} />
+                    </div>
+                    <span className="font-light tracking-wide truncate">{item.title}</span>
                   </div>
-                  <div className="flex items-center space-x-2 shrink-0 ml-3">
-                    <span className="text-[9px] uppercase tracking-widest text-[#505050] border border-[#222222] px-1.5 py-0.5">
+
+                  <div className="flex items-center space-x-2.5 shrink-0 ml-3">
+                    <span className="text-[9px] uppercase tracking-widest text-neutral-500 font-mono">
                       {item.category}
                     </span>
-                    {isSelected && <ArrowRight size={11} className="text-white" />}
+                    <span className="text-[10px] font-mono px-2 py-0.5 border border-white/10 bg-black/60 text-neutral-300">
+                      {item.shortcut}
+                    </span>
                   </div>
                 </div>
               );
@@ -220,11 +252,12 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, onOpenImportC
           )}
         </div>
 
-        {/* Footer Meta */}
-        <div className="px-4 py-2 border-t border-[#1c1c1c] bg-black flex justify-between text-[10px] text-[#505050] tracking-wider uppercase">
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-white/[0.06] bg-black/60 flex justify-between text-[10px] text-neutral-500 tracking-widest uppercase font-mono">
           <span>Navigate with ↑ ↓ and Enter</span>
-          <span>MARGIN Intelligence Terminal</span>
+          <span>MARGIN Command Interface</span>
         </div>
+
       </div>
     </div>
   );

@@ -18,13 +18,13 @@ export const ScrollReveal: React.FC<Props> = ({
   return (
     <div className={width === "full" ? "w-full" : "w-fit"}>
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 45 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
+        viewport={{ once: true, margin: "-80px" }}
         transition={{
-          duration: 0.6,
+          duration: 1.4, // Slow, majestic glide
           delay: delay,
-          ease: [0.16, 1, 0.3, 1], // Apple / Linear spring curve
+          ease: [0.22, 1, 0.36, 1], // Luxurious smooth deceleration curve
         }}
         className={className}
       >

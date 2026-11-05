@@ -32,6 +32,7 @@ export const config = {
     "/decision-room/:path*",
     "/pulse/:path*",
     "/benchmarks/:path*",
+    "/timeline/:path*",
     "/analytics/:path*",
     "/revenue/:path*",
     "/expenses/:path*",
